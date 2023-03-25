@@ -156,9 +156,10 @@ class MultiviewSpectralClustering(BaseCluster):
     0.872
 
     '''
+
     def __init__(self, n_clusters=2, random_state=None,
                  info_view=None, max_iter=10, n_init=10, affinity='rbf',
-                 gamma=None, n_neighbors=10):
+                 gamma=None, n_neighbors=10, dict_solver_params={}):
 
         super().__init__()
 
@@ -173,8 +174,9 @@ class MultiviewSpectralClustering(BaseCluster):
         self.labels_ = None
         self.embedding_ = None
 
-    def _affinity_mat(self, X):
+        self.dict_solver_params = dict_solver_params
 
+    def _affinity_mat(self, X):
         r'''
         Computes the affinity matrix based on the selected
         kernel type.
@@ -212,7 +214,6 @@ class MultiviewSpectralClustering(BaseCluster):
         return sims
 
     def _compute_eigs(self, X):
-
         r'''
         Computes the top several eigenvectors of the
         normalized graph laplacian of a given similarity matrix.
@@ -240,13 +241,18 @@ class MultiviewSpectralClustering(BaseCluster):
         # Make the resulting matrix symmetric
         laplacian = (laplacian + np.transpose(laplacian)) / 2.0
 
+        # To ensure PSD
+        min_val = laplacian.min()
+        if min_val < 0:
+            laplacian = laplacian + min_val
+
         # Obtain the top n_cluster eigenvectors of the laplacian
-        u_mat, _, _ = sp.sparse.linalg.svds(laplacian, k=self.n_clusters)
-        la_eigs = u_mat[:, :self.n_clusters]
+        _, u_mat = sp.linalg.eigh(laplacian)
+        la_eigs = u_mat[:,(u_mat.shape[1] - self.n_clusters):u_mat.shape[1]]
+
         return la_eigs
 
     def _param_checks(self, Xs):
-
         r'''
         Performs bulk of checks and exception handling for
         inputted user parameters.
@@ -307,8 +313,8 @@ class MultiviewSpectralClustering(BaseCluster):
             raise ValueError(msg)
 
         if self.gamma is not None and not ((isinstance(
-                self.gamma, float) or isinstance(self.gamma, int))
-                                           and self.gamma > 0):
+            self.gamma, float) or isinstance(self.gamma, int))
+                and self.gamma > 0):
             msg = 'gamma must be a positive float'
             raise ValueError(msg)
 
@@ -319,7 +325,6 @@ class MultiviewSpectralClustering(BaseCluster):
         return Xs
 
     def fit(self, Xs, y=None):
-
         r'''
         Performs clustering on the multiple views of data.
 
@@ -364,6 +369,7 @@ class MultiviewSpectralClustering(BaseCluster):
                 # Compute new graph similarity representation
                 mat1 = sims[view] @ (U_sum - eig_sums[view])
                 mat1 = (mat1 + np.transpose(mat1)) / 2.0
+
                 new_sims.append(mat1)
                 # Recompute eigenvectors
                 U_mats = [self._compute_eigs(sim)

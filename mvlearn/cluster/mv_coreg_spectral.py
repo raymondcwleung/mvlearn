@@ -116,18 +116,18 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
 
     def __init__(self, n_clusters=2, v_lambda=2, random_state=None,
                  info_view=None, max_iter=10, n_init=10, affinity='rbf',
-                 gamma=None, n_neighbors=10):
+                 gamma=None, n_neighbors=10, dict_solver_params={}):
 
         super().__init__(n_clusters=n_clusters, random_state=random_state,
                          info_view=info_view, max_iter=max_iter,
                          n_init=n_init, affinity=affinity, gamma=gamma,
-                         n_neighbors=n_neighbors)
+                         n_neighbors=n_neighbors,
+                         dict_solver_params={})
 
         self.v_lambda = v_lambda
         self.objective_ = None
 
     def _init_umat(self, X):
-
         r'''
         Computes the top several eigenvectors of the
         normalized graph laplacian of a given similarity matrix.
@@ -162,13 +162,14 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
         laplacian = (laplacian + np.transpose(laplacian)) / 2.0
 
         # Obtain the top n_cluster eigenvectors of the laplacian
-        u_mat, d_mat, _ = sp.sparse.linalg.svds(laplacian, k=self.n_clusters)
-        obj_val = np.sum(d_mat)
+        d_mat, u_mat = sp.linalg.eigh(laplacian)
+        u_mat = u_mat[:, (u_mat.shape[1] - self.n_clusters):u_mat.shape[1]]
+        d_mat = d_mat[(len(d_mat) - self.n_clusters):len(d_mat)]
 
+        obj_val = np.sum(d_mat)
         return u_mat, laplacian, obj_val
 
     def fit(self, Xs):
-
         r'''
         Performs clustering on the multiple views of data.
 
@@ -228,8 +229,13 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
 
                 # Adding the symmetrized graph laplacian for view v1
                 l_mat = L_mats[v1] + self.v_lambda * l_comp
-                U_mats[v1], d_mat, _ = sp.sparse.linalg.svds(l_mat,
-                                                             k=self.n_clusters)
+
+                d_mat, u_mat = sp.linalg.eigh(l_mat)
+                u_mat = u_mat[:, (u_mat.shape[1] -
+                                  self.n_clusters):u_mat.shape[1]]
+                d_mat = d_mat[(len(d_mat) - self.n_clusters):len(d_mat)]
+
+                U_mats[v1] = u_mat
                 obj_vals[v1, it] = np.sum(d_mat)
 
             # Update U and the objective function value for view 1
@@ -239,8 +245,12 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
                     l_comp = l_comp + U_mats[vi] @ U_mats[vi].T
             l_comp = (l_comp + l_comp.T) / 2
             l_mat = L_mats[0] + self.v_lambda * l_comp
-            U_mats[0], d_mat, _ = sp.sparse.linalg.svds(l_mat,
-                                                        k=self.n_clusters)
+
+            d_mat, u_mat = sp.linalg.eigh(l_mat)
+            u_mat = u_mat[:, (u_mat.shape[1] - self.n_clusters):u_mat.shape[1]]
+            d_mat = d_mat[(len(d_mat) - self.n_clusters):len(d_mat)]
+
+            U_mats[0] = u_mat
             obj_vals[0, it] = np.sum(d_mat)
             check_u_mats.append(U_mats[0])
         self.objective_ = obj_vals
@@ -258,7 +268,6 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
         return self
 
     def fit_predict(self, Xs, y=None):
-
         r'''
         Performs clustering on the multiple views of data and returns
         the cluster labels.
