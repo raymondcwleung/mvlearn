@@ -157,7 +157,7 @@ class MultiviewKMeans(BaseCluster):
 
     def __init__(self, n_clusters=2, random_state=None, init='k-means++',
                  patience=5, max_iter=300, n_init=5, tol=0.0001,
-                 n_jobs=None):
+                 n_jobs=None, suppress_convg_warnings=True):
 
         super().__init__()
 
@@ -172,7 +172,6 @@ class MultiviewKMeans(BaseCluster):
         self.centroids_ = None
 
     def _compute_dist(self, X, Y):
-
         r'''
         Function that computes the pairwise distance between each row of X
         and each row of Y. The distance metric used here is Euclidean
@@ -197,7 +196,6 @@ class MultiviewKMeans(BaseCluster):
         return distances
 
     def _init_centroids(self, Xs):
-
         r'''
         Initializes the centroids for Multi-view KMeans or KMeans++ depending
         on which has been selected.
@@ -267,7 +265,6 @@ class MultiviewKMeans(BaseCluster):
         return centroids
 
     def _final_centroids(self, Xs, centroids):
-
         r'''
         Computes the final cluster centroids based on consensus samples across
         both views. Consensus samples are those that are assigned to the same
@@ -337,7 +334,6 @@ class MultiviewKMeans(BaseCluster):
             self.n_clusters = self.centroids_[0].shape[0]
 
     def _em_step(self, X, partition, centroids):
-
         r'''
         A function that computes one iteration of expectation-maximization.
 
@@ -389,7 +385,6 @@ class MultiviewKMeans(BaseCluster):
         return new_parts, new_centers, o_funct
 
     def _preprocess_data(self, Xs):
-
         r'''
         Checks that the inputted data is in the correct format.
 
@@ -483,7 +478,6 @@ class MultiviewKMeans(BaseCluster):
         return intertia, centroids
 
     def fit(self, Xs, y=None):
-
         r'''
         Fit the cluster centroids to the data.
 
@@ -563,7 +557,6 @@ class MultiviewKMeans(BaseCluster):
         return self
 
     def predict(self, Xs):
-
         r'''
         Predict the cluster labels for the data.
 
