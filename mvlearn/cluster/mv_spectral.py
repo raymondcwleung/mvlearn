@@ -247,7 +247,7 @@ class MultiviewSpectralClustering(BaseCluster):
             laplacian = laplacian + min_val
 
         # Obtain the top n_cluster eigenvectors of the laplacian
-        _, u_mat = sp.linalg.eigh(laplacian)
+        _, u_mat = sp.linalg.eigh(laplacian, driver = "evd")
         la_eigs = u_mat[:,(u_mat.shape[1] - self.n_clusters):u_mat.shape[1]]
 
         return la_eigs
@@ -355,6 +355,7 @@ class MultiviewSpectralClustering(BaseCluster):
         # Initialize matrices of eigenvectors
         U_mats = [self._compute_eigs(sim) for sim in sims]
 
+
         # Iteratively compute new graph similarities, laplacians,
         # and eigenvectors
         for iter in range(self.max_iter):
@@ -369,11 +370,13 @@ class MultiviewSpectralClustering(BaseCluster):
                 # Compute new graph similarity representation
                 mat1 = sims[view] @ (U_sum - eig_sums[view])
                 mat1 = (mat1 + np.transpose(mat1)) / 2.0
+        
 
                 new_sims.append(mat1)
                 # Recompute eigenvectors
                 U_mats = [self._compute_eigs(sim)
                           for sim in new_sims]
+
 
         # Row normalize
         for view in range(self._n_views):

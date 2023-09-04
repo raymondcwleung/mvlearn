@@ -162,7 +162,7 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
         laplacian = (laplacian + np.transpose(laplacian)) / 2.0
 
         # Obtain the top n_cluster eigenvectors of the laplacian
-        d_mat, u_mat = sp.linalg.eigh(laplacian)
+        d_mat, u_mat = sp.linalg.eigh(laplacian, driver = "evd")
         u_mat = u_mat[:, (u_mat.shape[1] - self.n_clusters):u_mat.shape[1]]
         d_mat = d_mat[(len(d_mat) - self.n_clusters):len(d_mat)]
 
@@ -230,7 +230,7 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
                 # Adding the symmetrized graph laplacian for view v1
                 l_mat = L_mats[v1] + self.v_lambda * l_comp
 
-                d_mat, u_mat = sp.linalg.eigh(l_mat)
+                d_mat, u_mat = sp.linalg.eigh(l_mat, driver = "evd")
                 u_mat = u_mat[:, (u_mat.shape[1] -
                                   self.n_clusters):u_mat.shape[1]]
                 d_mat = d_mat[(len(d_mat) - self.n_clusters):len(d_mat)]
@@ -246,7 +246,7 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
             l_comp = (l_comp + l_comp.T) / 2
             l_mat = L_mats[0] + self.v_lambda * l_comp
 
-            d_mat, u_mat = sp.linalg.eigh(l_mat)
+            d_mat, u_mat = sp.linalg.eigh(l_mat, driver = "evd")
             u_mat = u_mat[:, (u_mat.shape[1] - self.n_clusters):u_mat.shape[1]]
             d_mat = d_mat[(len(d_mat) - self.n_clusters):len(d_mat)]
 
