@@ -1,0 +1,7 @@
+{
+  "dependencies" : [ 
+    "armadillo",
+    "mlpack",
+    "eigen3"
+  ]
+}
