@@ -11,19 +11,31 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# mlpack
+# Required libraries / packages
 find_path(MLPACK_INCLUDE_DIRS "mlpack/mlpack.hpp")
-
-# pybind11
 find_package(pybind11 CONFIG REQUIRED)
-
-# Armadillo
 find_package(Armadillo REQUIRED)
-
-# Eigen
+find_package(Catch2 3 REQUIRED)
 set(Eigen3_DIR
     ${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/x64-linux/share/eigen3)
 find_package(Eigen3 CONFIG NO_MODULE REQUIRED)
 
+# For Catch2
+include(CTest)
+include(Catch)
+
 # Include source directory
-add_subdirectory("${CMAKE_SOURCE_DIR}/src")
+set(DIR_SRC "${PROJECT_SOURCE_DIR}/src")
+set(DIR_INCLUDE "${PROJECT_SOURCE_DIR}/include")
+
+set(DIR_INCLUDE_SCIPYCPP "${PROJECT_SOURCE_DIR}/include/scipycpp")
+set(DIR_SRC_SCIPYCPP "${PROJECT_SOURCE_DIR}/src/scipycpp")
+
+set(DIR_INCLUDE_SKLEARNCPP "${PROJECT_SOURCE_DIR}/include/sklearncpp")
+set(DIR_SRC_SKLEARNCPP "${PROJECT_SOURCE_DIR}/src/sklearncpp")
+
+set(DIR_INCLUDE_UTILS_EIGENARMA "${PROJECT_SOURCE_DIR}/include/utils_eigenarma")
+set(DIR_SRC_UTILS_EIGENARMA "${PROJECT_SOURCE_DIR}/src/utils_eigenarma")
+
+add_subdirectory(${DIR_SRC})
+add_subdirectory("${CMAKE_SOURCE_DIR}/tests_cpp")

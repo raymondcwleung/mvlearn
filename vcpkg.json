@@ -2,6 +2,7 @@
   "dependencies" : [ 
     "armadillo",
     "mlpack",
-    "eigen3"
+    "eigen3",
+    "catch2"
   ]
 }

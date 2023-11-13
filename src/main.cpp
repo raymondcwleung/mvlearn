@@ -1,66 +1,62 @@
 #include <Eigen/Dense>
+#include <cstddef>
 #include <iostream>
 #include <mlpack.hpp>
 
-Eigen::MatrixXd cast_arma_to_eigen(arma::Mat<double> &arma_A) {
-  Eigen::MatrixXd eigen_A = Eigen::Map<Eigen::MatrixXd>(
-      arma_A.memptr(), arma_A.n_rows, arma_A.n_cols);
-
-  return eigen_A;
-}
-
-arma::Mat<double> cast_eigen_to_arma(Eigen::MatrixXd &eigen_A) {
-  auto arma_A = arma::Mat<double>(eigen_A.data(), eigen_A.rows(),
-                                  eigen_A.cols(), false, false);
-
-  return arma_A;
-}
-
 int main() {
-  arma::Mat<double> data("0.539406815,0.843176636,0.472701471; \
-                  0.212587646,0.351174901,0.81056695;  \
-                  0.160147626,0.255047893,0.04072469;  \
-                  0.564535197,0.943435462,0.597070812");
-
-  Eigen::MatrixXd data_e{{0.539406815, 0.843176636, 0.472701471},
-                         {0.212587646, 0.351174901, 0.81056695},
-                         {0.160147626, 0.255047893, 0.04072469},
-                         {0.564535197, 0.943435462, 0.597070812}};
-
-  std::cout << data << std::endl;
-  std::cout << data_e << std::endl;
-
-  Eigen::MatrixXd data_a_to_e = cast_arma_to_eigen(data);
-  arma::mat data_e_to_a = cast_eigen_to_arma(data_e);
-
-  std::cout << "A to E"
-            << "\n";
-  std::cout << data_a_to_e << "\n";
-
-  std::cout << "E to A \n"
-            << "\n";
-  std::cout << data_e_to_a << "\n";
-
+  /* arma::Mat<double> data( */
+  /*     "0.539406815,0.843176636,0.472701471; \ */
+  /*     0.212587646,0.351174901,0.81056695;  \ */
+  /*     0.160147626,0.255047893,0.04072469;  \ */
+  /*     0.564535197,0.943435462,0.597070812"); */
   /* data = data.t(); */
 
-  /* mlpack::NeighborSearch<mlpack::NearestNeighborSort,
-   * mlpack::ManhattanDistance> */
-  /*     nn(data); */
-  /**/
-  /* // Create the object we will store the nearest neighbors in. */
-  /* arma::Mat<size_t> neighbors; */
-  /* arma::mat distances; // We need to store the distance too. */
-  /**/
-  /* // Compute the neighbors. */
-  /* nn.Search(1, neighbors, distances); */
-  /**/
-  /* // Write each neighbor and distance using Log. */
-  /* for (size_t i = 0; i < neighbors.n_elem; ++i) { */
-  /*   std::cout << "Nearest neighbor of point " << i << " is point " */
-  /*             << neighbors[i] << " and the distance is " << distances[i] <<
-   * "." */
-  /*             << std::endl; */
-  /* } */
-  /**/
+  arma::Mat<double> data(
+      "-1, -1; \
+      -2, -1; \
+      -3, -2; \
+      1, 1; \
+      2, 1; \
+      3, 2");
+  size_t num_obs = data.n_rows;
+  size_t num_dim = data.n_cols;
+
+  data = data.t();
+
+  mlpack::NeighborSearch<mlpack::NearestNeighborSort, mlpack::EuclideanDistance>
+      nn(data);
+
+  arma::Mat<size_t> neighbors;
+  arma::Mat<double> distances;
+
+  int num_neighbors{3};
+  nn.Search(num_neighbors, neighbors, distances);
+
+  arma::Mat<size_t> wgt_edges(num_obs, num_obs, arma::fill::zeros);
+
+  neighbors = neighbors.t();
+  std::cout << neighbors << "\n" << std::endl;
+  std::cout << distances.t() << "\n" << std::endl;
+
+  for (size_t i = 0; i < num_obs; i++) {
+    // The point itself is also connected to the
+    // point itself
+    wgt_edges(i, i) = 1;
+
+    // We sum up to (num_neighbors - 1) and NOT
+    // to num_neighbors --- this is because
+    // we explicitly count in the point itself as a
+    // neighbor.
+    for (size_t j = 0; j < num_neighbors - 1; j++) {
+      // Get the edge to the neighbors
+      wgt_edges(i, neighbors(i, j)) = 1;
+    }
+  }
+
+  std::cout << wgt_edges << "\n";
+
+  /* int n_clusters{2}; */
+  /* mvlearn::MVSpectralClustering mvsc {} */
+
   return 0;
 }
