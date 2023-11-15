@@ -5,12 +5,10 @@
 #include <mlpack.hpp>
 
 namespace sklearncpp::neighbors {
-template <typename SortPolicy, typename MetricType>
+template <class SortPolicy, class MetricType>
 Eigen::MatrixXi nearestNeighbors(const Eigen::Ref<const Eigen::MatrixXd>& data,
-                                 const SortPolicy& sortpolicy,
-                                 const MetricType& metrictype,
                                  int num_neighbors);
 
-}
+}  // namespace sklearncpp::neighbors
 
 #endif

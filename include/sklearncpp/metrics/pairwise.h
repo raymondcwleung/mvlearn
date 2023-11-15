@@ -11,4 +11,5 @@ Eigen::MatrixXd rbfKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
 
 }
 
+
 #endif

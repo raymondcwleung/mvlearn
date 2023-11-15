@@ -3,12 +3,44 @@
 
 #include <Eigen/Dense>
 #include <armadillo>
+#include <fstream>
+#include <iostream>
+#include <vector>
 
 namespace utilseigenarma {
 
-Eigen::MatrixXd castArmaToEigen(arma::Mat<double> arma_mat);
+//! Cast Armadillo double-valued matrices to Eigen double-valued matrices
+/*!
+ * \param arma_mat An Armadillo double matrix (note pass-by-value)
+ *
+ * \return An Eigen double matrix
+ */
+template <typename T>
+Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> castArmaToEigen(
+    arma::Mat<T> arma_mat) {
+  Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> eigen_mat =
+      Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>>(
+          arma_mat.memptr(), arma_mat.n_rows, arma_mat.n_cols);
 
-arma::Mat<double> castEigenToArma(Eigen::MatrixXd eigen_mat);
+  return eigen_mat;
+};
+
+//! Cast Eigen double-valued matrices to Armadillo double-valued matrices
+/*!
+ * \param eigen_mat A Eigen double matrix (note pass-by-value)
+ *
+ * \return An Armadillo double matrix
+ */
+template <typename T>
+arma::Mat<T> castEigenToArma(
+    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> eigen_mat) {
+  arma::Mat<T> arma_mat =
+      arma::Mat<T>(eigen_mat.data(), eigen_mat.rows(), eigen_mat.cols(),
+                   true,  // true here is important due to pass-by-value
+                   false);
+
+  return arma_mat;
+};
 
 }  // namespace utilseigenarma
 

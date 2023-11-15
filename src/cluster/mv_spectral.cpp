@@ -3,11 +3,15 @@
 #include <Eigen/Dense>
 #include <armadillo>
 #include <cmath>
+#include <mlpack.hpp>
 #include <string>
 
-#include "metrics/pairwise/pairwise.h"
-#include "spatial/distance/distance.h"
-#include "utils/utils_eigen.cpp"
+/* #include "metrics/pairwise/pairwise.h" */
+#include "mlpack/core/kernels/gaussian_kernel.hpp"
+#include "scipycpp/spatial/distance/distance.h"
+#include "sklearncpp/metrics/pairwise.h"
+#include "sklearncpp/neighbors/nearestneighbors.h"
+#include "utils_eigenarma/conversions.h"
 
 namespace mvlearn::cluster {
 MVSpectralClustering::MVSpectralClustering(int n_clusters, int random_state,
@@ -27,13 +31,14 @@ MVSpectralClustering::MVSpectralClustering(int n_clusters, int random_state,
 Eigen::MatrixXd MVSpectralClustering::affinityMat_(
     const Eigen::Ref<const Eigen::MatrixXd>& X) {
   // A gamma has not been provided. Compute a gamma
-  // value for this view.
+  // value for this view. Note the gamma parameter is interpretted
+  // as a bandwidth parameter.
   double gamma{};
   if (gamma_ == -1) {
-    Eigen::MatrixXd distances = spatial::distance::cdist(X, X);
+    Eigen::MatrixXd distances = scipycpp::spatial::distance::cdist(X, X);
 
     // Compute the median of the distances matrix
-    arma::Mat<double> arma_X = utils::utilseigen::castEigenToArma(X);
+    arma::Mat<double> arma_X = utilseigenarma::castEigenToArma<double>(X);
     arma::Col<double> arma_vecX = arma::vectorise(arma_X);
     double median = arma::median(arma_vecX);
 
@@ -44,8 +49,14 @@ Eigen::MatrixXd MVSpectralClustering::affinityMat_(
 
   // Produce the affinity matrix based on the selected kernel type
   Eigen::MatrixXd sims{};
+
   if (affinity_ == "rbf") {
-    sims = metrics::pairwise::rbfKernel(X, X, gamma);
+    sims = sklearncpp::metrics::pairwise::rbfKernel(X, X, gamma);
+  } else if (affinity_ == "nearest_neighbors") {
+    /* sims = sklearncpp::neighbors::nearestNeighbors(X) */
+    // TODO
+  } else {
+    // TODO
   }
 
   return sims;

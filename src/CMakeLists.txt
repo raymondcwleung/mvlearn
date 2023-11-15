@@ -1,8 +1,7 @@
 add_executable(main main.cpp)
-target_include_directories(main PRIVATE ${MLPACK_INCLUDE_DIRS})
-
-target_link_libraries(main PUBLIC MVSpectralClustering)
-target_include_directories(main PUBLIC ${PROJECT_INCLUDE_DIR})
+target_link_libraries(main PUBLIC MVSpectralClustering
+                                  sklearncppNearestNeighbors)
+target_include_directories(main PUBLIC ${DIR_INCLUDE})
 
 # include_directories(${PYTHON_INCLUDE_DIRS}) pybind11_add_module(mvlearncpp
 # mvlearn.cpp) target_link_libraries(mvlearncpp PUBLIC ${PYTHON_LIBRARIES}
@@ -15,6 +14,5 @@ target_include_directories(main PUBLIC ${PROJECT_INCLUDE_DIR})
 # ${PROJECT_SOURCE_DIR}/include)
 
 add_subdirectory("cluster")
-add_subdirectory("utils_eigenarma")
 add_subdirectory("scipycpp")
 add_subdirectory("sklearncpp")
