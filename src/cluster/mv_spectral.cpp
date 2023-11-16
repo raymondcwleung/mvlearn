@@ -8,6 +8,8 @@
 
 /* #include "metrics/pairwise/pairwise.h" */
 #include "mlpack/core/kernels/gaussian_kernel.hpp"
+#include "mlpack/core/metrics/lmetric.hpp"
+#include "mlpack/methods/neighbor_search/sort_policies/nearest_neighbor_sort.hpp"
 #include "scipycpp/spatial/distance/distance.h"
 #include "sklearncpp/metrics/pairwise.h"
 #include "sklearncpp/neighbors/nearestneighbors.h"
@@ -52,14 +54,28 @@ Eigen::MatrixXd MVSpectralClustering::affinityMat_(
 
   if (affinity_ == "rbf") {
     sims = sklearncpp::metrics::pairwise::rbfKernel(X, X, gamma);
+
   } else if (affinity_ == "nearest_neighbors") {
-    /* sims = sklearncpp::neighbors::nearestNeighbors(X) */
-    // TODO
+    sims = sklearncpp::neighbors::nearestNeighbors<mlpack::NearestNeighborSort,
+                                                   mlpack::EuclideanDistance>(
+               X, n_neighbors_)
+               .cast<double>();
+
   } else {
     // TODO
   }
 
   return sims;
+}
+
+Eigen::MatrixXd MVSpectralClustering::computeEigs_(
+    const Eigen::Ref<const Eigen::MatrixXd>& X) {
+  // Compute the normalized Laplacian
+  Eigen::VectorXd col_sums = X.colwise().sum();
+  Eigen::MatrixXd d_mat = col_sums.diagonal().asDiagonal();
+
+  Eigen::MatrixXd la_eigs;
+  return la_eigs;
 }
 
 }  // namespace mvlearn::cluster

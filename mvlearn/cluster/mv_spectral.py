@@ -15,11 +15,11 @@ from sklearn.neighbors import NearestNeighbors
 from ..utils.utils import check_Xs
 from .base import BaseCluster
 
-AFFINITY_METRICS = ['rbf', 'nearest_neighbors', 'poly']
+AFFINITY_METRICS = ["rbf", "nearest_neighbors", "poly"]
 
 
 class MultiviewSpectralClustering(BaseCluster):
-    r'''An implementation of multi-view spectral clustering.
+    r"""An implementation of multi-view spectral clustering.
 
     An implementation of multi-view spectral clustering using the
     basic co-training framework as described in [#1Clu]_.
@@ -155,12 +155,20 @@ class MultiviewSpectralClustering(BaseCluster):
     >>> print('{0:.3f}'.format(nmi))
     0.872
 
-    '''
+    """
 
-    def __init__(self, n_clusters=2, random_state=None,
-                 info_view=None, max_iter=10, n_init=10, affinity='rbf',
-                 gamma=None, n_neighbors=10, dict_solver_params={}):
-
+    def __init__(
+        self,
+        n_clusters=2,
+        random_state=None,
+        info_view=None,
+        max_iter=10,
+        n_init=10,
+        affinity="rbf",
+        gamma=None,
+        n_neighbors=10,
+        dict_solver_params={},
+    ):
         super().__init__()
 
         self.n_clusters = n_clusters
@@ -177,7 +185,7 @@ class MultiviewSpectralClustering(BaseCluster):
         self.dict_solver_params = dict_solver_params
 
     def _affinity_mat(self, X):
-        r'''
+        r"""
         Computes the affinity matrix based on the selected
         kernel type.
 
@@ -192,7 +200,7 @@ class MultiviewSpectralClustering(BaseCluster):
         sims : array-like, shape (n_samples, n_samples)
             The resulting affinity kernel.
 
-        '''
+        """
 
         sims = None
 
@@ -202,9 +210,9 @@ class MultiviewSpectralClustering(BaseCluster):
             distances = cdist(X, X)
             gamma = 1 / (2 * np.median(distances) ** 2)
         # Produce the affinity matrix based on the selected kernel type
-        if (self.affinity == 'rbf'):
+        if self.affinity == "rbf":
             sims = rbf_kernel(X, gamma=gamma)
-        elif(self.affinity == 'nearest_neighbors'):
+        elif self.affinity == "nearest_neighbors":
             neighbor = NearestNeighbors(n_neighbors=self.n_neighbors)
             neighbor.fit(X)
             sims = neighbor.kneighbors_graph(X).toarray()
@@ -214,7 +222,7 @@ class MultiviewSpectralClustering(BaseCluster):
         return sims
 
     def _compute_eigs(self, X):
-        r'''
+        r"""
         Computes the top several eigenvectors of the
         normalized graph laplacian of a given similarity matrix.
         The number of eigenvectors returned is equal to n_clusters.
@@ -229,7 +237,7 @@ class MultiviewSpectralClustering(BaseCluster):
         la_eigs : array-like, shape(n_samples, n_clusters)
             The top n_cluster eigenvectors of the normalized graph
             laplacian.
-        '''
+        """
 
         # Compute the normalized laplacian
         d_mat = np.diag(np.sum(X, axis=1))
@@ -247,13 +255,13 @@ class MultiviewSpectralClustering(BaseCluster):
             laplacian = laplacian + min_val
 
         # Obtain the top n_cluster eigenvectors of the laplacian
-        _, u_mat = sp.linalg.eigh(laplacian, driver = "evd")
-        la_eigs = u_mat[:,(u_mat.shape[1] - self.n_clusters):u_mat.shape[1]]
+        _, u_mat = sp.linalg.eigh(laplacian, driver="evd")
+        la_eigs = u_mat[:, (u_mat.shape[1] - self.n_clusters) : u_mat.shape[1]]
 
         return la_eigs
 
     def _param_checks(self, Xs):
-        r'''
+        r"""
         Performs bulk of checks and exception handling for
         inputted user parameters.
 
@@ -275,19 +283,19 @@ class MultiviewSpectralClustering(BaseCluster):
 
         The data in the appropriate format.
 
-        '''
+        """
         Xs = check_Xs(Xs)
         if len(Xs) < 2:
-            msg = 'Xs must have at least 2 views'
+            msg = "Xs must have at least 2 views"
             raise ValueError(msg)
         self._n_views = len(Xs)
 
         if not (isinstance(self.n_clusters, int) and self.n_clusters > 0):
-            msg = 'n_clusters must be a positive integer'
+            msg = "n_clusters must be a positive integer"
             raise ValueError(msg)
 
         if self.random_state is not None:
-            msg = 'random_state must be convertible to 32 bit unsigned integer'
+            msg = "random_state must be convertible to 32 bit unsigned integer"
             try:
                 self.random_state = int(self.random_state)
             except ValueError:
@@ -295,37 +303,40 @@ class MultiviewSpectralClustering(BaseCluster):
             np.random.seed(self.random_state)
 
         if self.info_view is not None:
-            if not (isinstance(self.info_view, int) and
-                    (self. info_view >= 0 and self.info_view < self._n_views)):
-                msg = 'info_view must be an integer between 0 and n_clusters-1'
+            if not (
+                isinstance(self.info_view, int)
+                and (self.info_view >= 0 and self.info_view < self._n_views)
+            ):
+                msg = "info_view must be an integer between 0 and n_clusters-1"
                 raise ValueError(msg)
 
         if not (isinstance(self.max_iter, int) and (self.max_iter > 0)):
-            msg = 'max_iter must be a positive integer'
+            msg = "max_iter must be a positive integer"
             raise ValueError(msg)
 
         if not (isinstance(self.n_init, int) and self.n_init > 0):
-            msg = 'n_init must be a positive integer'
+            msg = "n_init must be a positive integer"
             raise ValueError(msg)
 
         if self.affinity not in AFFINITY_METRICS:
-            msg = 'affinity must be a valid affinity metric'
+            msg = "affinity must be a valid affinity metric"
             raise ValueError(msg)
 
-        if self.gamma is not None and not ((isinstance(
-            self.gamma, float) or isinstance(self.gamma, int))
-                and self.gamma > 0):
-            msg = 'gamma must be a positive float'
+        if self.gamma is not None and not (
+            (isinstance(self.gamma, float) or isinstance(self.gamma, int))
+            and self.gamma > 0
+        ):
+            msg = "gamma must be a positive float"
             raise ValueError(msg)
 
         if not (isinstance(self.n_neighbors, int) and self.n_neighbors > 0):
-            msg = 'n_neighbors must be a positive integer'
+            msg = "n_neighbors must be a positive integer"
             raise ValueError(msg)
 
         return Xs
 
     def fit(self, Xs, y=None):
-        r'''
+        r"""
         Performs clustering on the multiple views of data.
 
         Parameters
@@ -344,7 +355,7 @@ class MultiviewSpectralClustering(BaseCluster):
         Returns
         -------
         self : returns an instance of self.
-        '''
+        """
 
         # Perform checks on the data and inputted parameters
         Xs = self._param_checks(Xs)
@@ -355,11 +366,9 @@ class MultiviewSpectralClustering(BaseCluster):
         # Initialize matrices of eigenvectors
         U_mats = [self._compute_eigs(sim) for sim in sims]
 
-
         # Iteratively compute new graph similarities, laplacians,
         # and eigenvectors
         for iter in range(self.max_iter):
-
             # Compute the sums of the products of the spectral embeddings
             # and their transposes
             eig_sums = [u_mat @ np.transpose(u_mat) for u_mat in U_mats]
@@ -370,13 +379,10 @@ class MultiviewSpectralClustering(BaseCluster):
                 # Compute new graph similarity representation
                 mat1 = sims[view] @ (U_sum - eig_sums[view])
                 mat1 = (mat1 + np.transpose(mat1)) / 2.0
-        
 
                 new_sims.append(mat1)
                 # Recompute eigenvectors
-                U_mats = [self._compute_eigs(sim)
-                          for sim in new_sims]
-
+                U_mats = [self._compute_eigs(sim) for sim in new_sims]
 
         # Row normalize
         for view in range(self._n_views):
@@ -385,8 +391,11 @@ class MultiviewSpectralClustering(BaseCluster):
             U_mats[view] /= U_norm
 
         # Performing k-means clustering
-        kmeans = KMeans(n_clusters=self.n_clusters, n_init=self.n_init,
-                        random_state=self.random_state)
+        kmeans = KMeans(
+            n_clusters=self.n_clusters,
+            n_init=self.n_init,
+            random_state=self.random_state,
+        )
 
         if self.info_view is not None:
             # Use a single view if one was previously designated

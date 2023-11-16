@@ -3,6 +3,9 @@
 #include <iostream>
 #include <mlpack.hpp>
 
+#include "Eigen/src/Core/DiagonalMatrix.h"
+#include "Eigen/src/Core/Matrix.h"
+#include "Eigen/src/Eigenvalues/SelfAdjointEigenSolver.h"
 #include "mlpack/core/metrics/lmetric.hpp"
 #include "mlpack/methods/neighbor_search/sort_policies/nearest_neighbor_sort.hpp"
 #include "sklearncpp/neighbors/nearestneighbors.h"
@@ -20,13 +23,66 @@ int main() {
 
   /* std::cout << data_eigen << std::endl; */
 
-  int num_neighbors{2};
-  Eigen::MatrixXi sims =
-      sklearncpp::neighbors::nearestNeighbors<mlpack::NearestNeighborSort,
-                                              mlpack::EuclideanDistance>(
-          data_eigen, num_neighbors);
+  int n_clusters_{5};
 
-  std::cout << sims.cast<double>() << std::endl;
+  /* double lo{0}; */
+  /* double hi{1}; */
+  /* double range{hi - lo}; */
+  /* std::srand(12345); */
+  /* Eigen::MatrixXd X = Eigen::MatrixXd::Random(10, 10); */
+  /* X = (X + Eigen::MatrixXd::Constant(10, 10, 1.)) * range / 2; */
+  /* X = (X + Eigen::MatrixXd::Constant(10, 10, lo)); */
+
+  Eigen::MatrixXd X{{0.178395, 0.367737, 0.655419, 0.41206, 0.576451, 0.485838,
+                     0.879841, 0.182721, 0.578371, 0.554799},
+                    {0.399677, 0.222367, 0.527644, 0.81593, 0.757953, 0.0252066,
+                     0.0174133, 0.472538, 0.703867, 0.793983},
+                    {0.166599, 0.219657, 0.505857, 0.280523, 0.176208, 0.69734,
+                     0.564316, 0.650993, 0.974248, 0.783903},
+                    {0.212122, 0.201738, 0.915692, 0.578658, 0.796108, 0.991695,
+                     0.160365, 0.35893, 0.275711, 0.119115},
+                    {0.0619357, 0.0441157, 0.188085, 0.0280522, 0.959691,
+                     0.940898, 0.596072, 0.268646, 0.695562, 0.954347},
+                    {0.0541498, 0.34392, 0.119156, 0.342459, 0.220324, 0.885425,
+                     0.592369, 0.610684, 0.915147, 0.379974},
+                    {0.275665, 0.647654, 0.0580968, 0.632808, 0.140028,
+                     0.110851, 0.502824, 0.579253, 0.161136, 0.711484},
+                    {0.0477572, 0.149464, 0.719929, 0.303718, 0.607345,
+                     0.998995, 0.22888, 0.408675, 0.806413, 0.457171},
+                    {0.321033, 0.0296677, 0.637535, 0.390216, 0.369788,
+                     0.605354, 0.896086, 0.218028, 0.914142, 0.608854},
+                    {0.272734, 0.878494, 0.880846, 0.953841, 0.169696, 0.748386,
+                     0.89304, 0.949041, 0.766489, 0.60757}};
+  X = X.transpose() * X;
+
+  // Compute the normalized Laplacian
+  Eigen::VectorXd col_sums = X.colwise().sum();
+  Eigen::MatrixXd d_mat = Eigen::MatrixXd(X.colwise().sum().asDiagonal());
+
+  Eigen::MatrixXd d_alt = d_mat.inverse().cwiseSqrt();
+  Eigen::MatrixXd laplacian = d_alt * X * d_alt;
+
+  // Make the resulting matrix symmetric
+  laplacian = (laplacian + laplacian.transpose()) / 2.0;
+
+  // To ensure PSD
+  double min_val = laplacian.minCoeff();
+  if (min_val < 0.0) {
+    laplacian = laplacian + Eigen::MatrixXd::Constant(
+                                laplacian.rows(), laplacian.cols(), min_val);
+  }
+
+  // Obtain the top n_cluster eigenvectors the of the Laplacian
+  // Note Eigen::SelfAdjointEigenSolver sorts the eigenvalues in increasing
+  // order
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(laplacian);
+  Eigen::MatrixXd u_mat{es.eigenvectors()};
+
+  Eigen::MatrixXd la_eigs =
+      u_mat(Eigen::all, Eigen::seq(u_mat.cols() - n_clusters_, Eigen::last));
+
+  std::cout << es.eigenvalues() << "\n";
+  /* std::cout << la_eigs << std::endl; */
 
   /* arma::Mat<double> data( */
   /*     "-1, -1; \ */
