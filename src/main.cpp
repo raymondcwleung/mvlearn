@@ -9,6 +9,7 @@
 #include "mlpack/core/metrics/lmetric.hpp"
 #include "mlpack/methods/neighbor_search/sort_policies/nearest_neighbor_sort.hpp"
 #include "sklearncpp/neighbors/nearestneighbors.h"
+#include "utils_eigenarma/conversions.h"
 
 int main() {
   /* arma::Mat<double> data( */
@@ -58,7 +59,6 @@ int main() {
   // Compute the normalized Laplacian
   Eigen::VectorXd col_sums = X.colwise().sum();
   Eigen::MatrixXd d_mat = Eigen::MatrixXd(X.colwise().sum().asDiagonal());
-
   Eigen::MatrixXd d_alt = d_mat.inverse().cwiseSqrt();
   Eigen::MatrixXd laplacian = d_alt * X * d_alt;
 
@@ -81,8 +81,39 @@ int main() {
   Eigen::MatrixXd la_eigs =
       u_mat(Eigen::all, Eigen::seq(u_mat.cols() - n_clusters_, Eigen::last));
 
-  std::cout << es.eigenvalues() << "\n";
+  /* std::cout << es.eigenvalues() << "\n"; */
   /* std::cout << la_eigs << std::endl; */
+
+  arma::Mat<double> arma_X{utilseigenarma::castEigenToArma(X)};
+
+  int num_clusters{3};
+  arma::Row<size_t> assignments;
+  arma::Mat<double> centroids;
+
+  mlpack::KMeans<> k;
+  k.Cluster(arma_X, num_clusters, assignments, centroids);
+
+  std::cout << centroids << "\n";
+
+  Eigen::MatrixXd newX0 = Eigen::MatrixXd::Random(7, 10);
+  Eigen::MatrixXd newX = newX0.transpose();  // 10 x 7
+  // i.e. "data" in mlpack must be of the form space_dim x num_samples
+  // (this is the TRANSPOSE of the usual design matrix form)
+
+  newX = X(Eigen::all, Eigen::seq(2, 5));
+
+  arma::Mat<double> arma_newX{utilseigenarma::castEigenToArma(newX)};
+
+  arma::Row<size_t> new_assignments;
+  new_assignments.set_size(arma_newX.n_cols);
+
+  mlpack::KNN a(centroids);
+  arma::Mat<double> resulting_distances;
+
+  a.Search(arma_newX, 1, new_assignments, resulting_distances);
+
+  std::cout << new_assignments << "\n";
+  std::cout << resulting_distances << "\n";
 
   /* arma::Mat<double> data( */
   /*     "-1, -1; \ */

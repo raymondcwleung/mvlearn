@@ -72,9 +72,29 @@ Eigen::MatrixXd MVSpectralClustering::computeEigs_(
     const Eigen::Ref<const Eigen::MatrixXd>& X) {
   // Compute the normalized Laplacian
   Eigen::VectorXd col_sums = X.colwise().sum();
-  Eigen::MatrixXd d_mat = col_sums.diagonal().asDiagonal();
+  Eigen::MatrixXd d_mat = Eigen::MatrixXd(X.colwise().sum().asDiagonal());
+  Eigen::MatrixXd d_alt = d_mat.inverse().cwiseSqrt();
+  Eigen::MatrixXd laplacian = d_alt * X * d_alt;
 
-  Eigen::MatrixXd la_eigs;
+  // Make the resulting matrix symmetric
+  laplacian = (laplacian + laplacian.transpose()) / 2.0;
+
+  // To ensure PSD
+  double min_val = laplacian.minCoeff();
+  if (min_val < 0.0) {
+    laplacian = laplacian + Eigen::MatrixXd::Constant(
+                                laplacian.rows(), laplacian.cols(), min_val);
+  }
+
+  // Obtain the top n_cluster eigenvectors the of the Laplacian
+  // Note Eigen::SelfAdjointEigenSolver sorts the eigenvalues in increasing
+  // order
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(laplacian);
+  Eigen::MatrixXd u_mat{es.eigenvectors()};
+
+  Eigen::MatrixXd la_eigs =
+      u_mat(Eigen::all, Eigen::seq(u_mat.cols() - n_clusters_, Eigen::last));
+
   return la_eigs;
 }
 
