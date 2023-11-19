@@ -1,6 +1,7 @@
 add_executable(main main.cpp)
-target_link_libraries(main PUBLIC MVSpectralClustering
-                                  sklearncppNearestNeighbors)
+target_link_libraries(
+  main PUBLIC MVSpectralClustering sklearncppNearestNeighbors
+              sklearncppClusterKMeans sklearncppMetricsPairwise)
 target_include_directories(main PUBLIC ${DIR_INCLUDE})
 
 # include_directories(${PYTHON_INCLUDE_DIRS}) pybind11_add_module(mvlearncpp

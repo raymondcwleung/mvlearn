@@ -2,7 +2,7 @@
 #define SKLEARNCPP_CLUSTER_KMEANS_H_
 
 #include <Eigen/Dense>
-#include <armadillo>
+#include <mlpack.hpp>
 
 namespace sklearn::cluster {
 
@@ -10,7 +10,8 @@ class KMeans {
  public:
   KMeans(int n_clusters, int max_iter);
   void fit(const Eigen::Ref<const Eigen::MatrixXd>& X);
-  arma::Row<size_t> assign(const Eigen::Ref<const Eigen::MatrixXd>& newX);
+  arma::Row<size_t> assign(const arma::Mat<double>& newX);
+  Eigen::VectorXi assign(const Eigen::Ref<const Eigen::MatrixXd>& newX);
 
  private:
   int n_clusters_{};

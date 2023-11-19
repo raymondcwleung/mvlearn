@@ -1,6 +1,7 @@
 #include "spatial/distance/distance.h"
 
 #include <Eigen/Dense>
+#include <iostream>
 #include <string>
 
 namespace scipycpp::spatial::distance {
@@ -17,10 +18,7 @@ namespace scipycpp::spatial::distance {
  *
  * \return A \f$ m \times m \f$ distance matrix \f$ Y \f$ is returned.
  */
-template <typename Derived>
-Eigen::MatrixXd cdist(const Eigen::MatrixBase<Derived>& XA,
-                      const Eigen::MatrixBase<Derived>& XB,
-                      const std::string metric) {
+Eigen::MatrixXd cdist(const Eigen::MatrixXd& XA, const Eigen::MatrixXd& XB) {
   // NOTE:: Not checking that XA.rows() is the same as XB.rows()
   int num_features = static_cast<int>(XA.rows());
 

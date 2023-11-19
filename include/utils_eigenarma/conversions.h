@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 
+#include "Eigen/src/Core/Matrix.h"
+
 namespace utilseigenarma {
 
 //! Cast Armadillo double-valued matrices to Eigen double-valued matrices
@@ -21,6 +23,15 @@ Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> castArmaToEigen(
   Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> eigen_mat =
       Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>>(
           arma_mat.memptr(), arma_mat.n_rows, arma_mat.n_cols);
+
+  return eigen_mat;
+};
+
+template <typename T>
+Eigen::Vector<T, Eigen::Dynamic> castArmaToEigen(arma::Col<T> arma_vec) {
+  Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> eigen_mat =
+      Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>>(
+          arma_vec.memptr(), arma_vec.n_rows, arma_vec.n_cols);
 
   return eigen_mat;
 };
