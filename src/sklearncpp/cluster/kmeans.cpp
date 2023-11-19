@@ -37,15 +37,15 @@ arma::Row<size_t> KMeans::assign(const arma::Mat<double>& newX) {
   return new_assignments;
 };
 
-/* Eigen::VectorXi KMeans::assign(const Eigen::Ref<const Eigen::MatrixXd>& newX)
- * { */
-/*   // Convert from Eigen to Armadillo matrix */
-/*   arma::Mat<double> arma_newX{utilseigenarma::castEigenToArma<double>(newX)};
- */
-/**/
-/*   arma::Row<size_t> arma_new_assignments{KMeans::assign(arma_newX)}; */
-/*   Eigen::VectorXi utilseigenarma::castArmaToEigen( */
-/*       static_cast<int>(arma_new_assignments)); */
-/* }; */
+Eigen::VectorXi KMeans::assign(const Eigen::Ref<const Eigen::MatrixXd>& newX) {
+  // Convert from Eigen to Armadillo matrix
+  arma::Mat<double> arma_newX{utilseigenarma::castEigenToArma<double>(newX)};
+
+  arma::Row<size_t> arma_new_assignments{KMeans::assign(arma_newX)};
+
+  arma::Row<int> blah = arma::conv_to<int>::from(arma_new_assignments);
+
+  return utilseigenarma::castArmaToEigen<int>();
+};
 
 }  // namespace sklearn::cluster

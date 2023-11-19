@@ -31,13 +31,15 @@ int main() {
   double hi{1};
   double range{hi - lo};
   std::srand(12345);
-  Eigen::MatrixXd X = Eigen::MatrixXd::Random(50, 7);
+  Eigen::MatrixXd X = Eigen::MatrixXd::Random(10, 7).array().cos();
 
   Eigen::MatrixXd X0 = X;
   Eigen::MatrixXd X1 = X0.array().sin();
 
+  /* arma::Mat<double> A(50, 7, arma::fill::randu); */
+
   int n_cluster{3};
-  int num_samples{50};
+  int num_samples{10};
   int num_features{7};
   int random_state{-1};  // Fix
   int info_view{0};
@@ -46,13 +48,13 @@ int main() {
   std::string affinity{"rbf"};
   int n_neighbors{2};
 
-  std::map<int, Eigen::MatrixXd> Xs{{0, X0}, {1, X1}};
+  std::vector<Eigen::MatrixXd> Xs{X0, X1};
 
   mvlearn::cluster::MVSpectralClustering mvsc(
       n_cluster, num_samples, num_features, random_state, info_view, max_iter,
       n_init, affinity, n_neighbors);
 
-  mvsc.fit(X, Xs);
+  mvsc.fit(Xs);
 
   return 0;
 }

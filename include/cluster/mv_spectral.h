@@ -2,6 +2,7 @@
 #define MVLEARN_CLUSTER_MV_SPECTRAL_H
 
 #include <Eigen/Dense>
+#include <armadillo>
 #include <map>
 #include <string>
 
@@ -23,9 +24,6 @@ class MVSpectralClustering {
 
   Eigen::MatrixXd affinityMat_(const Eigen::MatrixXd& X);
   Eigen::MatrixXd computeEigs_(const Eigen::Ref<const Eigen::MatrixXd>& X);
-  Eigen::MatrixXd rbfKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
-                            const Eigen::Ref<const Eigen::MatrixXd>& Y,
-                            double gamma = 1.0);
 
  public:
   Eigen::MatrixXd embedding_{};
@@ -36,8 +34,7 @@ class MVSpectralClustering {
                        int n_init, std::string affinity, int n_neighbors,
                        double gamma = -1);
 
-  void fit(const Eigen::Ref<const Eigen::MatrixXd>& X0,
-           const std::map<int, Eigen::MatrixXd>& Xs);
+  void fit(const std::vector<Eigen::MatrixXd>& Xs);
 };
 }  // namespace mvlearn::cluster
 

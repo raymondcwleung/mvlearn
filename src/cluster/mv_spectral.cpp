@@ -10,8 +10,7 @@
 #include <mlpack.hpp>
 #include <string>
 
-/* #include "metrics/pairwise/pairwise.h" */
-
+#include "Eigen/src/Core/Matrix.h"
 #include "scipycpp/spatial/distance/distance.h"
 #include "sklearncpp/cluster/kmeans.h"
 #include "sklearncpp/metrics/pairwise.h"
@@ -108,100 +107,75 @@ Eigen::MatrixXd MVSpectralClustering::computeEigs_(
   return la_eigs;
 }
 
-Eigen::MatrixXd rbfKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
-                          const Eigen::Ref<const Eigen::MatrixXd>& Y,
-                          double gamma) {
-  // NOTE:: We're not checking that X and Y have the same shapes
-  Eigen::MatrixXd Kmat(X.rows(), X.rows());
-
-  for (int i; i < X.rows(); i++) {
-    for (int j; j < Y.rows(); j++) {
-      Kmat(i, j) = std::exp(
-          -1.0 * gamma * (X(i, Eigen::all) - Y(j, Eigen::all)).squaredNorm());
-    }
-  }
-
-  return Kmat;
-}
-
 //! Performs clustering on the multiple views of data
 /*
  *
  */
-void MVSpectralClustering::fit(const Eigen::Ref<const Eigen::MatrixXd>& X0,
-                               const std::map<int, Eigen::MatrixXd>& Xs) {
+void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
   n_views_ = Xs.size();
 
   // Compute the similarity matrices
-  std::map<int, Eigen::MatrixXd> sims;
+  std::vector<Eigen::MatrixXd> sims(n_views_);
+  std::transform(Xs.begin(), Xs.end(), sims.begin(),
+                 [this](const Eigen::MatrixXd& X) { return affinityMat_(X); });
 
-  Eigen::MatrixXd blah = this->rbfKernel(X0, X0);
-  std::cout << blah << "\n";
+  // Initialize matrices of eigenvectors
+  std::vector<Eigen::MatrixXd> U_mats(n_views_);
+  std::transform(sims.begin(), sims.end(), U_mats.begin(),
+                 [this](const Eigen::MatrixXd& X) { return computeEigs_(X); });
 
-  /* for (auto const& [view, X] : Xs) { */
-  /*   sims[view] = affinityMat_(X); */
-  /* } */
+  // Iteratively compute new graph similarities, Laplacians and eigenvectors
+  int iter{0};
+  std::vector<Eigen::MatrixXd> eig_sums(n_views_);
+  std::vector<Eigen::MatrixXd> new_sims(n_views_);
 
-  /* std::transform(Xs.begin(), Xs.end(), sims.begin(), */
-  /*                [this](auto X) { return affinityMat_(X); }); */
+  while (iter < max_iter_) {
+    // Compute the sums of the products of the spectral embeddings and their
+    // transposes.
+    // Note that each u_mat is of size num_samples x n_cluster. Hence,
+    // each entry in eig_sums is num_samples x num_samples.
+    std::transform(U_mats.begin(), U_mats.end(), eig_sums.begin(),
+                   [this](const Eigen::MatrixXd& u_mat) {
+                     return u_mat * u_mat.transpose();
+                   });
 
-  /**/
-  /* // Initialize matrices of eigenvectors */
-  /* std::vector<Eigen::MatrixXd> U_mats(n_views_); */
-  /* std::transform(sims.begin(), sims.end(), U_mats.begin(), */
-  /*                [this](const Eigen::MatrixXd& X) { return computeEigs_(X);
-   * }); */
-  /**/
-  /* // Iteratively compute new graph similarities, Laplacians and eigenvectors
-   */
-  /* int iter{0}; */
-  /* std::vector<Eigen::MatrixXd> eig_sums(n_views_); */
-  /* Eigen::MatrixXd U_sum{Eigen::MatrixXd::Zero(num_samples_, n_clusters_)}; */
-  /* while (iter < max_iter_) { */
-  /*   // Compute the sums of the products of the spectral embeddings and their
-   */
-  /*   // transposes */
-  /*   std::transform(U_mats.begin(), U_mats.end(), eig_sums.begin(), */
-  /*                  [this](const Eigen::MatrixXd& u_mat) { */
-  /*                    return u_mat * u_mat.transpose(); */
-  /*                  }); */
-  /*   for (auto& u_mat : U_mats) { */
-  /*     U_sum += u_mat; */
-  /*   } */
-  /**/
-  /*   std::vector<Eigen::MatrixXd> new_sims{}; */
-  /*   Eigen::MatrixXd mat1{}; */
-  /**/
-  /*   for (int view = 0; view < n_views_; view++) { */
-  /*     // Compute new graph similariity representation */
-  /*     mat1 = sims[view] * (U_sum - eig_sums[view]); */
-  /*     mat1 = (mat1 + mat1.transpose()) / 2.0; */
-  /**/
-  /*     new_sims.push_back(mat1); */
-  /**/
-  /*     // Recompute eigenvectors */
-  /*     std::transform(new_sims.begin(), new_sims.end(), U_mats.begin(), */
-  /*                    [this](const Eigen::Ref<const Eigen::MatrixXd>& X) { */
-  /*                      return computeEigs_(X); */
-  /*                    }); */
-  /*   } */
-  /**/
-  /*   iter++; */
-  /* } */
-  /**/
-  /* // Row normalize */
-  /* Eigen::VectorXd U_norm(n_clusters_); */
-  /* for (int view = 0; view < n_views_; view++) { */
-  /*   for (int j = 0; j < U_mats[view].cols(); j++) { */
-  /*     U_mats[view].col(j).normalize(); */
-  /*   } */
-  /* } */
+    Eigen::MatrixXd U_sum = Eigen::MatrixXd::Zero(num_samples_, num_samples_);
+    std::for_each(eig_sums.begin(), eig_sums.end(),
+                  [&](const Eigen::MatrixXd& X) { return U_sum += X; });
+
+    for (int view = 0; view < n_views_; view++) {
+      // Compute new graph similariity representation
+      Eigen::MatrixXd mat1 = sims[view] * (U_sum - eig_sums[view]);
+      mat1 = (mat1 + mat1.transpose()) / 2.0;
+      new_sims[view] = mat1;
+    }
+
+    // Recompute eigenvectors
+    std::transform(
+        new_sims.begin(), new_sims.end(), U_mats.begin(),
+        [this](const Eigen::MatrixXd& X) { return computeEigs_(X); });
+
+    iter++;
+  }
+
+  // Row normalize
+  for (int view = 0; view < n_views_; view++) {
+    for (int j = 0; j < U_mats[view].rows(); j++) {
+      U_mats[view].row(j).normalize();
+    }
+  }
 
   // Perform k-means clustering
-  /* sklearn::cluster::KMeans kmeans(n_clusters_, 1); */
-  /* embedding_ = U_mats[info_view_]; */
-  /* kmeans.fit(embedding_); */
-  /* arma::Row<size_t> arma_labels{kmeans.assign(embedding_)}; */
+  sklearn::cluster::KMeans kmeans(n_clusters_, max_iter_);
+  embedding_ = U_mats[info_view_];
+
+  std::cout << embedding_ << "\n";
+
+  kmeans.fit(embedding_.transpose());
+
+  std::cout << kmeans.assign(embedding_.transpose()) << "\n";
+
+  /* std::cout << labels << "\n"; */
 }
 
 }  // namespace mvlearn::cluster
