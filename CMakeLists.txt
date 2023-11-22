@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15..3.28)
+cmake_minimum_required(VERSION 3.20..3.28)
 # Needed for vcpkg
 set(CMAKE_TOOLCHAIN_FILE "./vcpkg/scripts/buildsystems/vcpkg.cmake")
 project(MyPoem VERSION 0.1.0)
@@ -6,19 +6,21 @@ project(MyPoem VERSION 0.1.0)
 # IDE prettiness
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Required libraries / packages
+find_package(TBB CONFIG REQUIRED)
+find_package(Python COMPONENTS Interpreter Development)
+find_package(pybind11 CONFIG REQUIRED)
+find_package(Catch2 3 REQUIRED)
+find_package(Armadillo REQUIRED)
+set(Eigen3_DIR
+    ${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/x64-linux/share/eigen3)
+find_package(Eigen3 CONFIG NO_MODULE REQUIRED)
+find_path(MLPACK_INCLUDE_DIRS "mlpack/mlpack.hpp")
+
 # C++ standards
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Required libraries / packages
-find_path(MLPACK_INCLUDE_DIRS "mlpack/mlpack.hpp")
-find_package(pybind11 CONFIG REQUIRED)
-find_package(Armadillo REQUIRED)
-find_package(Catch2 3 REQUIRED)
-set(Eigen3_DIR
-    ${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/x64-linux/share/eigen3)
-find_package(Eigen3 CONFIG NO_MODULE REQUIRED)
 
 # For Catch2
 include(CTest)
@@ -38,4 +40,7 @@ set(DIR_INCLUDE_UTILS_EIGENARMA "${PROJECT_SOURCE_DIR}/include/utils_eigenarma")
 set(DIR_SRC_UTILS_EIGENARMA "${PROJECT_SOURCE_DIR}/src/utils_eigenarma")
 
 add_subdirectory(${DIR_SRC})
-add_subdirectory("${CMAKE_SOURCE_DIR}/tests_cpp")
+# add_subdirectory("${CMAKE_SOURCE_DIR}/tests_cpp")
+#
+
+install(TARGETS _core DESTINATION scikit_build_example)

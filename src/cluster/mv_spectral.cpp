@@ -1,10 +1,14 @@
 #include "cluster/mv_spectral.h"
 
+#include <pstl/glue_execution_defs.h>
+
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <execution>
 #include <functional>
 #include <map>
 #include <mlpack.hpp>
@@ -18,6 +22,8 @@
 #include "utils_eigenarma/conversions.h"
 
 namespace mvlearn::cluster {
+typedef std::chrono::high_resolution_clock Clock;
+
 MVSpectralClustering::MVSpectralClustering(int n_clusters, int num_samples,
                                            int num_features, int random_state,
                                            int info_view, int max_iter,
@@ -88,11 +94,12 @@ Eigen::MatrixXd MVSpectralClustering::computeEigs_(
   laplacian = (laplacian + laplacian.transpose()) / 2.0;
 
   // To ensure PSD
-  double min_val = laplacian.minCoeff();
-  if (min_val < 0.0) {
-    laplacian = laplacian + Eigen::MatrixXd::Constant(
-                                laplacian.rows(), laplacian.cols(), min_val);
-  }
+  /* double min_val = laplacian.array().minCoeff(); */
+  /* if (min_val < 0.0) { */
+  /*   laplacian = laplacian + Eigen::MatrixXd::Constant( */
+  /*                               laplacian.rows(), laplacian.cols(), min_val);
+   */
+  /* } */
 
   // Obtain the top n_cluster eigenvectors the of the Laplacian
   // Note Eigen::SelfAdjointEigenSolver sorts the eigenvalues in increasing
@@ -120,28 +127,50 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
                  [this](const Eigen::MatrixXd& X) { return affinityMat_(X); });
 
   // Initialize matrices of eigenvectors
+  auto t1 = Clock::now();
   std::vector<Eigen::MatrixXd> U_mats(n_views_);
   std::transform(sims.begin(), sims.end(), U_mats.begin(),
                  [this](const Eigen::MatrixXd& X) { return computeEigs_(X); });
+  auto t2 = Clock::now();
+  std::cout
+      << "Eigen calc Delta t2-t1: "
+      << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
+      << " milliseconds" << std::endl;
 
   // Iteratively compute new graph similarities, Laplacians and eigenvectors
   int iter{0};
   std::vector<Eigen::MatrixXd> eig_sums(n_views_);
   std::vector<Eigen::MatrixXd> new_sims(n_views_);
+  Eigen::MatrixXd U_sum(num_samples_, num_samples_);
 
   while (iter < max_iter_) {
+    std::cout << iter << "\n";
+
     // Compute the sums of the products of the spectral embeddings and their
     // transposes.
     // Note that each u_mat is of size num_samples x n_cluster. Hence,
     // each entry in eig_sums is num_samples x num_samples.
+    auto t1 = Clock::now();
     std::transform(U_mats.begin(), U_mats.end(), eig_sums.begin(),
-                   [this](const Eigen::MatrixXd& u_mat) {
+                   [&](const Eigen::MatrixXd& u_mat) {
                      return u_mat * u_mat.transpose();
                    });
+    auto t2 = Clock::now();
+    std::cout << "eig_sums calc: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
+                     .count()
+              << " milliseconds" << std::endl;
 
-    Eigen::MatrixXd U_sum = Eigen::MatrixXd::Zero(num_samples_, num_samples_);
+    auto t11 = Clock::now();
+    U_sum.setZero();
     std::for_each(eig_sums.begin(), eig_sums.end(),
                   [&](const Eigen::MatrixXd& X) { return U_sum += X; });
+    auto t22 = Clock::now();
+    std::cout << "U_sum calc: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(t22 -
+                                                                       t11)
+                     .count()
+              << " milliseconds" << std::endl;
 
     for (int view = 0; view < n_views_; view++) {
       // Compute new graph similariity representation
@@ -152,7 +181,7 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
 
     // Recompute eigenvectors
     std::transform(
-        new_sims.begin(), new_sims.end(), U_mats.begin(),
+        std::execution::par, new_sims.begin(), new_sims.end(), U_mats.begin(),
         [this](const Eigen::MatrixXd& X) { return computeEigs_(X); });
 
     iter++;
@@ -168,14 +197,20 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
   // Perform k-means clustering
   sklearn::cluster::KMeans kmeans(n_clusters_, max_iter_);
   embedding_ = U_mats[info_view_];
+  labels_ = kmeans.fit_predict(embedding_);
+}
 
-  std::cout << embedding_ << "\n";
+Eigen::VectorXi mvlearn::cluster::MVSpectralClustering::fit_predict(
+    const std::vector<Eigen::MatrixXd>& Xs) {
+  auto t1 = Clock::now();
+  fit(Xs);
+  auto t2 = Clock::now();
 
-  kmeans.fit(embedding_.transpose());
+  std::cout << "Delta t2-t1: "
+            << std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count()
+            << " seconds" << std::endl;
 
-  std::cout << kmeans.assign(embedding_.transpose()) << "\n";
-
-  /* std::cout << labels << "\n"; */
+  return labels_;
 }
 
 }  // namespace mvlearn::cluster

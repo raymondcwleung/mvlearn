@@ -1,12 +1,9 @@
 #include "neighbors/nearestneighbors.h"
 
-#include <armadillo>
 #include <cstddef>
 #include <iostream>
 #include <mlpack.hpp>
 
-#include "mlpack/core/metrics/lmetric.hpp"
-#include "mlpack/methods/neighbor_search/sort_policies/nearest_neighbor_sort.hpp"
 #include "utils_eigenarma/conversions.h"
 
 namespace sklearncpp::neighbors {

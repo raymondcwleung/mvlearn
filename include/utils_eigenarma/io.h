@@ -2,9 +2,9 @@
 #define UTILS_EIGENARMA_IO_
 
 #include <Eigen/Dense>
-#include <armadillo>
 #include <fstream>
 #include <iostream>
+#include <mlpack/core.hpp>
 #include <string>
 
 namespace utilseigenarma {

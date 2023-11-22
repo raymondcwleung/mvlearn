@@ -36,6 +36,15 @@ Eigen::Vector<T, Eigen::Dynamic> castArmaToEigen(arma::Col<T> arma_vec) {
   return eigen_mat;
 };
 
+template <typename T>
+Eigen::Vector<T, Eigen::Dynamic> castArmaToEigen(arma::Row<T> arma_vec) {
+  Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> eigen_mat =
+      Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>>(
+          arma_vec.memptr(), arma_vec.n_rows, arma_vec.n_cols);
+
+  return eigen_mat;
+};
+
 //! Cast Eigen double-valued matrices to Armadillo double-valued matrices
 /*!
  * \param eigen_mat A Eigen double matrix (note pass-by-value)

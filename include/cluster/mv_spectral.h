@@ -2,11 +2,15 @@
 #define MVLEARN_CLUSTER_MV_SPECTRAL_H
 
 #include <Eigen/Dense>
-#include <armadillo>
-#include <map>
 #include <string>
+#include <vector>
 
 namespace mvlearn::cluster {
+
+typedef Eigen::Ref<Eigen::MatrixXd, 0,
+                   Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>
+    EigenDRef;
+
 class MVSpectralClustering {
  private:
   int n_clusters_{};
@@ -35,6 +39,8 @@ class MVSpectralClustering {
                        double gamma = -1);
 
   void fit(const std::vector<Eigen::MatrixXd>& Xs);
+  Eigen::VectorXi fit_predict(const std::vector<Eigen::MatrixXd>& Xs);
+  /* void fit(const std::vector<EigenDRef>& Xs); */
 };
 }  // namespace mvlearn::cluster
 
