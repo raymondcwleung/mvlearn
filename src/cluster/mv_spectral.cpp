@@ -3,15 +3,16 @@
 #include <pstl/glue_execution_defs.h>
 
 #include <Eigen/Dense>
-#include <Eigen/StdVector>
+/* #include <Eigen/StdVector> */
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <execution>
 #include <functional>
-#include <map>
+/* #include <map> */
 #include <mlpack.hpp>
+#include <numeric>
 #include <string>
 
 #include "Eigen/src/Core/Matrix.h"
@@ -52,10 +53,17 @@ Eigen::MatrixXd MVSpectralClustering::affinityMat_(const Eigen::MatrixXd& X) {
   if (gamma_ == -1) {
     Eigen::MatrixXd distances = scipycpp::spatial::distance::cdist(X, X);
 
-    // Compute the median of the distances matrix
-    arma::Mat<double> arma_X = utilseigenarma::castEigenToArma<double>(X);
-    arma::Col<double> arma_vecX = arma::vectorise(arma_X);
-    double median = arma::median(arma_vecX);
+    // Vectorize the distances matrix
+    Eigen::VectorXd v_dist = distances.reshaped();
+    std::vector<double> vec_distances;
+    vec_distances.resize(v_dist.size());
+    Eigen::VectorXd::Map(&vec_distances[0], v_dist.size()) = v_dist;
+
+    // Compute the median of the distances
+    size_t midpt = vec_distances.size() / 2;
+    std::nth_element(vec_distances.begin(), vec_distances.begin() + midpt,
+                     vec_distances.end());
+    double median = vec_distances[midpt];
 
     gamma = 1.0 / (2.0 * std::pow(median, 2));
   } else {
@@ -68,16 +76,18 @@ Eigen::MatrixXd MVSpectralClustering::affinityMat_(const Eigen::MatrixXd& X) {
 
   if (affinity_ == "rbf") {
     sims = sklearncpp::metrics::pairwise::rbfKernel(X, X, gamma);
-
-  } else if (affinity_ == "nearest_neighbors") {
-    sims = sklearncpp::neighbors::nearestNeighbors<mlpack::NearestNeighborSort,
-                                                   mlpack::EuclideanDistance>(
-               X, n_neighbors_)
-               .cast<double>();
-
-  } else {
-    // TODO
   }
+  /* else if (affinity_ == "nearest_neighbors") { */
+  /*   sims =
+   * sklearncpp::neighbors::nearestNeighbors<mlpack::NearestNeighborSort, */
+  /*                                                  mlpack::EuclideanDistance>(
+   */
+  /*              X, n_neighbors_) */
+  /*              .cast<double>(); */
+  /**/
+  /* } else { */
+  /*   // TODO */
+  /* } */
 
   return sims;
 }
@@ -86,12 +96,12 @@ Eigen::MatrixXd MVSpectralClustering::computeEigs_(
     const Eigen::Ref<const Eigen::MatrixXd>& X) {
   // Compute the normalized Laplacian
   Eigen::VectorXd col_sums = X.colwise().sum();
-  Eigen::MatrixXd d_mat = Eigen::MatrixXd(X.colwise().sum().asDiagonal());
-  Eigen::MatrixXd d_alt = d_mat.inverse().cwiseSqrt();
-  Eigen::MatrixXd laplacian = d_alt * X * d_alt;
+
+  Eigen::VectorXd v_alt = X.colwise().sum().cwiseInverse().cwiseSqrt();
+  Eigen::MatrixXd laplacian = v_alt.asDiagonal() * X * v_alt.asDiagonal();
 
   // Make the resulting matrix symmetric
-  laplacian = (laplacian + laplacian.transpose()) / 2.0;
+  laplacian = 0.5 * (laplacian + laplacian.transpose());
 
   // To ensure PSD
   /* double min_val = laplacian.array().minCoeff(); */
@@ -105,13 +115,9 @@ Eigen::MatrixXd MVSpectralClustering::computeEigs_(
   // Note Eigen::SelfAdjointEigenSolver sorts the eigenvalues in increasing
   // order
   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(laplacian);
-  Eigen::MatrixXd u_mat{es.eigenvectors()};
 
-  Eigen::MatrixXd la_eigs(num_samples_, n_clusters_);
-  la_eigs =
-      u_mat(Eigen::all, Eigen::seq(u_mat.cols() - n_clusters_, Eigen::last));
-
-  return la_eigs;
+  return es.eigenvectors()(
+      Eigen::all, Eigen::seq(laplacian.cols() - n_clusters_, Eigen::last));
 }
 
 //! Performs clustering on the multiple views of data
@@ -123,66 +129,66 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
 
   // Compute the similarity matrices
   std::vector<Eigen::MatrixXd> sims(n_views_);
-  std::transform(Xs.begin(), Xs.end(), sims.begin(),
-                 [this](const Eigen::MatrixXd& X) { return affinityMat_(X); });
+  std::for_each(sims.begin(), sims.end(), [this](Eigen::MatrixXd& X) {
+    X.resize(num_samples_, num_features_);
+  });
+  std::transform(std::execution::par_unseq, Xs.begin(), Xs.end(), sims.begin(),
+                 [&](const Eigen::MatrixXd& X) { return affinityMat_(X); });
 
   // Initialize matrices of eigenvectors
-  auto t1 = Clock::now();
   std::vector<Eigen::MatrixXd> U_mats(n_views_);
-  std::transform(sims.begin(), sims.end(), U_mats.begin(),
-                 [this](const Eigen::MatrixXd& X) { return computeEigs_(X); });
-  auto t2 = Clock::now();
-  std::cout
-      << "Eigen calc Delta t2-t1: "
-      << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
-      << " milliseconds" << std::endl;
+  std::for_each(U_mats.begin(), U_mats.end(), [this](Eigen::MatrixXd& X) {
+    X.resize(num_samples_, n_clusters_);
+  });
+  std::transform(std::execution::par_unseq, sims.begin(), sims.end(),
+                 U_mats.begin(),
+                 [&](const Eigen::MatrixXd& X) { return computeEigs_(X); });
 
   // Iteratively compute new graph similarities, Laplacians and eigenvectors
   int iter{0};
+
   std::vector<Eigen::MatrixXd> eig_sums(n_views_);
+  std::for_each(eig_sums.begin(), eig_sums.end(), [this](Eigen::MatrixXd& X) {
+    X.resize(num_samples_, num_features_);
+  });
+
   std::vector<Eigen::MatrixXd> new_sims(n_views_);
+  std::for_each(new_sims.begin(), new_sims.end(), [this](Eigen::MatrixXd& X) {
+    X.resize(num_samples_, num_features_);
+  });
+
   Eigen::MatrixXd U_sum(num_samples_, num_samples_);
 
-  while (iter < max_iter_) {
-    std::cout << iter << "\n";
+  std::vector<int> idx_views(n_views_);
+  std::iota(idx_views.begin(), idx_views.end(), 0);
 
+  while (iter < max_iter_) {
     // Compute the sums of the products of the spectral embeddings and their
     // transposes.
     // Note that each u_mat is of size num_samples x n_cluster. Hence,
     // each entry in eig_sums is num_samples x num_samples.
-    auto t1 = Clock::now();
-    std::transform(U_mats.begin(), U_mats.end(), eig_sums.begin(),
-                   [&](const Eigen::MatrixXd& u_mat) {
+    std::transform(std::execution::par_unseq, U_mats.begin(), U_mats.end(),
+                   eig_sums.begin(), [&](const Eigen::MatrixXd& u_mat) {
                      return u_mat * u_mat.transpose();
                    });
-    auto t2 = Clock::now();
-    std::cout << "eig_sums calc: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
-                     .count()
-              << " milliseconds" << std::endl;
 
-    auto t11 = Clock::now();
     U_sum.setZero();
     std::for_each(eig_sums.begin(), eig_sums.end(),
-                  [&](const Eigen::MatrixXd& X) { return U_sum += X; });
-    auto t22 = Clock::now();
-    std::cout << "U_sum calc: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(t22 -
-                                                                       t11)
-                     .count()
-              << " milliseconds" << std::endl;
+                  [&U_sum](const Eigen::MatrixXd& X) { return U_sum += X; });
 
-    for (int view = 0; view < n_views_; view++) {
-      // Compute new graph similariity representation
-      Eigen::MatrixXd mat1 = sims[view] * (U_sum - eig_sums[view]);
-      mat1 = (mat1 + mat1.transpose()) / 2.0;
-      new_sims[view] = mat1;
-    }
+    // Compute new graph similariity representation
+    std::iota(idx_views.begin(), idx_views.end(), 0);
+    std::for_each(std::execution::par_unseq, idx_views.begin(), idx_views.end(),
+                  [&U_sum, &eig_sums, &new_sims, &sims](const int& view) {
+                    Eigen::MatrixXd mat1 =
+                        sims[view] * (U_sum - eig_sums[view]);
+                    new_sims[view] = 0.5 * (mat1 + mat1.transpose());
+                  });
 
     // Recompute eigenvectors
-    std::transform(
-        std::execution::par, new_sims.begin(), new_sims.end(), U_mats.begin(),
-        [this](const Eigen::MatrixXd& X) { return computeEigs_(X); });
+    std::transform(std::execution::par_unseq, new_sims.begin(), new_sims.end(),
+                   U_mats.begin(),
+                   [&](const Eigen::MatrixXd& X) { return computeEigs_(X); });
 
     iter++;
   }
@@ -202,13 +208,7 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
 
 Eigen::VectorXi mvlearn::cluster::MVSpectralClustering::fit_predict(
     const std::vector<Eigen::MatrixXd>& Xs) {
-  auto t1 = Clock::now();
   fit(Xs);
-  auto t2 = Clock::now();
-
-  std::cout << "Delta t2-t1: "
-            << std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count()
-            << " seconds" << std::endl;
 
   return labels_;
 }

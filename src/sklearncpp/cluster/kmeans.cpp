@@ -23,6 +23,7 @@ void KMeans::fit(const Eigen::Ref<const Eigen::MatrixXd>& X) {
   // The input X (Eigen::MatrixXd) is of dimensions num_samples x num_features.
   // However, the mlpack::KMeans methods assume the data matrices are of the
   // shape num_features x num_samples.
+
   num_samples_ = X.rows();
   num_features_ = X.cols();
   arma_X_transposed_ = utilseigenarma::castEigenToArma<double>(X).t();

@@ -3,10 +3,14 @@ cmake_minimum_required(VERSION 3.20..3.28)
 set(CMAKE_TOOLCHAIN_FILE "./vcpkg/scripts/buildsystems/vcpkg.cmake")
 project(MyPoem VERSION 0.1.0)
 
+# set(CMAKE_BUILD_TYPE Debug)
+
 # IDE prettiness
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Required libraries / packages
+#
+find_package(OpenMP)
 find_package(TBB CONFIG REQUIRED)
 find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 CONFIG REQUIRED)

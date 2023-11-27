@@ -10,5 +10,10 @@ target_link_libraries(
          scipycppSpatialDistance
          sklearncppClusterKMeans
          sklearncppNearestNeighbors
+         OpenMP::OpenMP_CXX
          TBB::tbb
          TBB::tbbmalloc)
+
+# target_compile_options(MVSpectralClustering PUBLIC -O3 -Ofast -ffast-math
+# -fPIC)
+target_compile_options(MVSpectralClustering PUBLIC -Ofast -fPIC)

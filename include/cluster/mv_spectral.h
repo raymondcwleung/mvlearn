@@ -28,6 +28,7 @@ class MVSpectralClustering {
 
   Eigen::MatrixXd affinityMat_(const Eigen::MatrixXd& X);
   Eigen::MatrixXd computeEigs_(const Eigen::Ref<const Eigen::MatrixXd>& X);
+  /* Eigen::VectorXi fit_predict(const std::vector<Eigen::MatrixXd>& Xs); */
 
  public:
   Eigen::MatrixXd embedding_{};
