@@ -243,7 +243,11 @@ class MultiviewSpectralClustering(BaseCluster):
         d_mat = np.diag(np.sum(X, axis=1))
 
         # Double check why we take absolute value of d_mat
-        d_alt = np.sqrt(np.linalg.inv(np.abs(d_mat)))
+        # d_alt = np.sqrt(np.linalg.inv(np.abs(d_mat)))
+
+        d_alt = np.sum(X, axis=1)
+        d_alt = np.diag(np.sqrt(1 / d_alt))
+
         laplacian = d_alt @ X @ d_alt
 
         # Make the resulting matrix symmetric
@@ -255,8 +259,11 @@ class MultiviewSpectralClustering(BaseCluster):
             laplacian = laplacian + min_val
 
         # Obtain the top n_cluster eigenvectors of the laplacian
-        _, u_mat = sp.linalg.eigh(laplacian, driver="evd")
-        la_eigs = u_mat[:, (u_mat.shape[1] - self.n_clusters) : u_mat.shape[1]]
+        try:
+            _, u_mat = sp.linalg.eigh(laplacian, driver="evd")
+            la_eigs = u_mat[:, (u_mat.shape[1] - self.n_clusters) : u_mat.shape[1]]
+        except:
+            breakpoint()
 
         return la_eigs
 
@@ -381,8 +388,9 @@ class MultiviewSpectralClustering(BaseCluster):
                 mat1 = (mat1 + np.transpose(mat1)) / 2.0
 
                 new_sims.append(mat1)
-                # Recompute eigenvectors
-                U_mats = [self._compute_eigs(sim) for sim in new_sims]
+
+            # Recompute eigenvectors
+            U_mats = [self._compute_eigs(sim) for sim in new_sims]
 
         # Row normalize
         for view in range(self._n_views):

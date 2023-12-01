@@ -1,3 +1,12 @@
+add_library(evrot Evrot.cpp "${DIR_INCLUDE}/cluster/Evrot.h")
+target_link_libraries(evrot PUBLIC Eigen3::Eigen)
+target_include_directories(evrot PUBLIC ${DIR_INCLUDE})
+
+add_library(clusterRotate ClusterRotate.cpp
+                          "${DIR_INCLUDE}/cluster/ClusterRotate.h")
+target_link_libraries(clusterRotate PUBLIC Eigen3::Eigen evrot)
+target_include_directories(clusterRotate PUBLIC ${DIR_INCLUDE})
+
 add_library(MVSpectralClustering mv_spectral.cpp
                                  "${DIR_INCLUDE}/cluster/mv_spectral.h")
 
@@ -10,6 +19,7 @@ target_link_libraries(
          scipycppSpatialDistance
          sklearncppClusterKMeans
          sklearncppNearestNeighbors
+         clusterRotate
          OpenMP::OpenMP_CXX
          TBB::tbb
          TBB::tbbmalloc)

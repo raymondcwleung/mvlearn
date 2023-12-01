@@ -10,12 +10,9 @@ namespace sklearncpp::neighbors {
 
 template <class SortPolicy, class MetricType>
 Eigen::MatrixXi nearestNeighbors(const Eigen::Ref<const Eigen::MatrixXd>& data,
-                                 int num_neighbors) {
+                                 int num_neighbors, int num_obs) {
   // Take the Eigen based matrix data and convert it to an Armadillo matrix
   arma::Mat<double> arma_data = utilseigenarma::castEigenToArma<double>(data);
-
-  std::size_t num_obs{arma_data.n_rows};
-  std::size_t num_dim{arma_data.n_cols};
 
   // Critical to take the transpose for mlpack::NeighborSearch
   arma_data = arma_data.t();
@@ -60,4 +57,8 @@ Eigen::MatrixXi nearestNeighbors(const Eigen::Ref<const Eigen::MatrixXd>& data,
 
 template Eigen::MatrixXi sklearncpp::neighbors::nearestNeighbors<
     mlpack::NearestNeighborSort, mlpack::EuclideanDistance>(
-    const Eigen::Ref<const Eigen::MatrixXd>&, int);
+    const Eigen::Ref<const Eigen::MatrixXd>&, int, int);
+
+template Eigen::MatrixXi sklearncpp::neighbors::nearestNeighbors<
+    mlpack::NearestNeighborSort, mlpack::ManhattanDistance>(
+    const Eigen::Ref<const Eigen::MatrixXd>&, int, int);

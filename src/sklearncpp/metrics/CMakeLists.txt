@@ -1,5 +1,7 @@
 add_library(sklearncppMetricsPairwise
             pairwise.cpp "${DIR_INCLUDE_SKLEARNCPP}/metrics/pairwise.h")
-target_link_libraries(sklearncppMetricsPairwise PUBLIC Eigen3::Eigen)
-target_include_directories(sklearncppMetricsPairwise
-                           PRIVATE ${DIR_INCLUDE_SKLEARNCPP})
+target_link_libraries(sklearncppMetricsPairwise
+                      PUBLIC Eigen3::Eigen sklearncppNearestNeighbors)
+target_include_directories(
+  sklearncppMetricsPairwise PUBLIC ${DIR_INCLUDE_SKLEARNCPP} ${DIR_INCLUDE}
+                                   ${MLPACK_INCLUDE_DIRS})
