@@ -24,7 +24,7 @@ int main() {
 
   /* std::cout << data_eigen << std::endl; */
 
-  int num_samples{10};
+  int num_samples{200};
 
   double lo{0};
   double hi{1};
@@ -37,7 +37,7 @@ int main() {
 
   /* arma::Mat<double> A(50, 7, arma::fill::randu); */
 
-  int n_cluster{3};
+  int n_cluster{11};
   int num_features{6};
   int random_state{-1};  // Fix
   int info_view{0};
@@ -47,12 +47,13 @@ int main() {
   /* std::string affinity{"rbf"}; */
   int n_neighbors{2};
   double gamma{-1};
+  bool auto_num_clusters{true};
 
   std::vector<Eigen::MatrixXd> Xs{X0, X1};
 
   mvlearn::cluster::MVSpectralClustering mvsc(
       n_cluster, num_samples, num_features, random_state, info_view, max_iter,
-      n_init, affinity, n_neighbors, gamma);
+      n_init, affinity, n_neighbors, gamma, auto_num_clusters);
 
   mvsc.fit(Xs);
 

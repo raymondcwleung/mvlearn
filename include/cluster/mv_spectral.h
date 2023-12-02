@@ -23,13 +23,13 @@ class MVSpectralClustering {
   std::string affinity_{};
   double gamma_{};
   int n_neighbors_{};
-  bool local_gamma_{};
   bool auto_num_clusters_{};
 
   int n_views_{};
 
   Eigen::MatrixXd affinityMat_(const Eigen::MatrixXd& X);
-  Eigen::MatrixXd computeEigs_(const Eigen::Ref<const Eigen::MatrixXd>& X);
+  Eigen::MatrixXd computeEigs_(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                               int num_top_eigenvectors);
   /* Eigen::VectorXi fit_predict(const std::vector<Eigen::MatrixXd>& Xs); */
 
  public:
@@ -39,11 +39,12 @@ class MVSpectralClustering {
   MVSpectralClustering(int n_clusters, int num_samples, int num_features,
                        int random_state, int info_view, int max_iter,
                        int n_init, std::string affinity, int n_neighbors,
-                       double gamma = -1, bool local_gamma = false,
-                       bool auto_num_clusters = false);
+                       double gamma = -1, bool auto_num_clusters = false);
 
   void fit(const std::vector<Eigen::MatrixXd>& Xs);
   Eigen::VectorXi fit_predict(const std::vector<Eigen::MatrixXd>& Xs);
+
+  int get_num_clusters();
   /* void fit(const std::vector<EigenDRef>& Xs); */
 };
 }  // namespace mvlearn::cluster

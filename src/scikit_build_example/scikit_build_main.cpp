@@ -34,10 +34,13 @@ PYBIND11_MODULE(_core, m) {
                     int,          // n_init,
                     std::string,  // affinity
                     int,          // n_neighbors
-                    double        // gamma
+                    double,       // gamma
+                    bool          // auto_num_clusters
                     >())
       .def("fit", &mvlearn::cluster::MVSpectralClustering::fit)
-      .def("fit_predict", &mvlearn::cluster::MVSpectralClustering::fit_predict);
+      .def("fit_predict", &mvlearn::cluster::MVSpectralClustering::fit_predict)
+      .def("get_num_clusters",
+           &mvlearn::cluster::MVSpectralClustering::get_num_clusters);
 
   m.def("add", &add, R"pbdoc(
         Add two numbers

@@ -9,6 +9,8 @@
 
 #include <map>
 
+#include "Eigen/Dense"
+
 Evrot::Evrot(Eigen::MatrixXd& X, int method)
     : mMethod(method),
       mNumDims(X.cols()),
@@ -53,6 +55,7 @@ void Evrot::evrot() {
   iter = 0;
   while (iter < max_iter) {  // iterate to refine quality
     iter++;
+
     for (d = 0; d < mNumAngles; d++) {
       if (mMethod == 2) {  // descend through numerical drivative
         alpha = 0.1;

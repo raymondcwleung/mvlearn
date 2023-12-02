@@ -28,10 +28,12 @@
 
 namespace mvlearn::cluster {
 
-MVSpectralClustering::MVSpectralClustering(
-    int n_clusters, int num_samples, int num_features, int random_state,
-    int info_view, int max_iter, int n_init, std::string affinity,
-    int n_neighbors, double gamma, bool local_gamma, bool auto_num_clusters)
+MVSpectralClustering::MVSpectralClustering(int n_clusters, int num_samples,
+                                           int num_features, int random_state,
+                                           int info_view, int max_iter,
+                                           int n_init, std::string affinity,
+                                           int n_neighbors, double gamma,
+                                           bool auto_num_clusters)
     : n_clusters_(n_clusters),
       num_samples_{num_samples},
       num_features_{num_features},
@@ -40,9 +42,8 @@ MVSpectralClustering::MVSpectralClustering(
       max_iter_{max_iter},
       n_init_(n_init),
       affinity_{affinity},
-      gamma_{gamma},
       n_neighbors_{n_neighbors},
-      local_gamma_{local_gamma},
+      gamma_{gamma},
       auto_num_clusters_(auto_num_clusters) {
   // To ensure correct sizes
   embedding_.resize(num_samples_, n_clusters_);
@@ -101,7 +102,7 @@ Eigen::MatrixXd MVSpectralClustering::affinityMat_(const Eigen::MatrixXd& X) {
 }
 
 Eigen::MatrixXd MVSpectralClustering::computeEigs_(
-    const Eigen::Ref<const Eigen::MatrixXd>& X) {
+    const Eigen::Ref<const Eigen::MatrixXd>& X, int num_top_eigenvectors) {
   // Compute the normalized Laplacian
   Eigen::VectorXd v_alt = X.colwise().sum().cwiseInverse().cwiseSqrt();
   Eigen::MatrixXd laplacian = v_alt.asDiagonal() * X * v_alt.asDiagonal();
@@ -123,19 +124,13 @@ Eigen::MatrixXd MVSpectralClustering::computeEigs_(
   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(laplacian);
 
   Eigen::MatrixXd la_eigs;
-  if (n_clusters_ != 0) {
-    la_eigs = es.eigenvectors()(
-        Eigen::all, Eigen::seq(laplacian.cols() - n_clusters_, Eigen::last));
-  } else {
+  if (num_top_eigenvectors == -1) {
     la_eigs = es.eigenvectors();
+  } else {
+    la_eigs = es.eigenvectors()(
+        Eigen::all,
+        Eigen::seq(laplacian.cols() - num_top_eigenvectors, Eigen::last));
   }
-
-  /* // HACK */
-  /* ClusterRotate clusterrotate{1}; */
-  /* std::vector<std::vector<int>> clusters = clusterrotate.cluster(la_eigs); */
-  /* int mynumclusters = clusters.size(); */
-  /**/
-  /* std::cout << "mynumclusters: " << mynumclusters << "\n"; */
 
   return la_eigs;
 }
@@ -156,6 +151,23 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
                    return affinityMat_(X);
                  });
 
+  if (auto_num_clusters_) {
+    // Compute the eigendecomposition of the Laplacian using only the most
+    // informative view
+    Eigen::MatrixXd la_eigs_info_view =
+        computeEigs_(sims[info_view_], n_clusters_);
+
+    // Apply the Zelnik-Manor and Perona (2004) method to compute the
+    // number of clusters based on the data of the most informative
+    // view
+    ClusterRotate clusterrotate{};
+    std::vector<std::vector<int>> clusters =
+        clusterrotate.cluster(la_eigs_info_view);
+    int num_clusters_info_view = clusters.size();
+
+    n_clusters_ = num_clusters_info_view;
+  }
+
   // Initialize matrices of eigenvectors U_v for each view
   // The matrix of top eigenvectors are of size num_samples_ x n_clusters_
   std::vector<Eigen::MatrixXd> U_mats(
@@ -163,7 +175,7 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
   std::transform(std::execution::par_unseq, sims.begin(), sims.end(),
                  U_mats.begin(),
                  [this, &sims = std::as_const(sims)](const Eigen::MatrixXd& X) {
-                   return computeEigs_(X);
+                   return computeEigs_(X, n_clusters_);
                  });
 
   // Iteratively compute new graph similarities, Laplacians and eigenvectors
@@ -203,10 +215,12 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
         });
 
     // Recompute eigenvectors and get new U_v's
-    std::transform(std::execution::par_unseq, new_sims.begin(), new_sims.end(),
-                   U_mats.begin(),
-                   [this, &new_sims = std::as_const(new_sims)](
-                       const Eigen::MatrixXd& X) { return computeEigs_(X); });
+    std::transform(
+        std::execution::par_unseq, new_sims.begin(), new_sims.end(),
+        U_mats.begin(),
+        [this, &new_sims = std::as_const(new_sims)](const Eigen::MatrixXd& X) {
+          return computeEigs_(X, n_clusters_);
+        });
 
     iter++;
   }
@@ -229,6 +243,10 @@ Eigen::VectorXi mvlearn::cluster::MVSpectralClustering::fit_predict(
   fit(Xs);
 
   return labels_;
+}
+
+int mvlearn::cluster::MVSpectralClustering::get_num_clusters() {
+  return n_clusters_;
 }
 
 }  // namespace mvlearn::cluster
