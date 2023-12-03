@@ -259,11 +259,8 @@ class MultiviewSpectralClustering(BaseCluster):
             laplacian = laplacian + min_val
 
         # Obtain the top n_cluster eigenvectors of the laplacian
-        try:
-            _, u_mat = sp.linalg.eigh(laplacian, driver="evd")
-            la_eigs = u_mat[:, (u_mat.shape[1] - self.n_clusters) : u_mat.shape[1]]
-        except:
-            breakpoint()
+        _, u_mat = sp.linalg.eigh(laplacian, driver="evd")
+        la_eigs = u_mat[:, (u_mat.shape[1] - self.n_clusters) : u_mat.shape[1]]
 
         return la_eigs
 

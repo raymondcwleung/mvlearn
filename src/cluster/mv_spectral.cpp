@@ -16,6 +16,7 @@
 #include <mlpack.hpp>
 #include <mlpack/core/metrics/lmetric.hpp>
 #include <numeric>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -94,15 +95,14 @@ Eigen::MatrixXd MVSpectralClustering::affinityMat_(const Eigen::MatrixXd& X) {
                X, n_neighbors_, num_samples_)
                .cast<double>();
   } else {
-    // TODO
-    // sdfhs
+    throw std::invalid_argument("Invalid affinity choice");
   }
 
   return sims;
 }
 
-Eigen::MatrixXd MVSpectralClustering::computeEigs_(
-    const Eigen::Ref<const Eigen::MatrixXd>& X, int num_top_eigenvectors) {
+Eigen::MatrixXd MVSpectralClustering::constructLaplacian_(
+    const Eigen::Ref<const Eigen::MatrixXd>& X) {
   // Compute the normalized Laplacian
   Eigen::VectorXd v_alt = X.colwise().sum().cwiseInverse().cwiseSqrt();
   Eigen::MatrixXd laplacian = v_alt.asDiagonal() * X * v_alt.asDiagonal();
@@ -117,6 +117,14 @@ Eigen::MatrixXd MVSpectralClustering::computeEigs_(
         laplacian + Eigen::MatrixXd::Constant(laplacian.rows(),
                                               laplacian.cols(), -1.0 * min_val);
   }
+
+  return laplacian;
+}
+
+Eigen::MatrixXd MVSpectralClustering::computeEigs_(
+    const Eigen::Ref<const Eigen::MatrixXd>& X, int num_top_eigenvectors) {
+  // Get the normalized Laplacian
+  Eigen::MatrixXd laplacian = constructLaplacian_(X);
 
   // Obtain the top n_cluster eigenvectors the of the Laplacian
   // Note Eigen::SelfAdjointEigenSolver sorts the eigenvalues in increasing
@@ -135,6 +143,63 @@ Eigen::MatrixXd MVSpectralClustering::computeEigs_(
   return la_eigs;
 }
 
+void MVSpectralClustering::computeEigs_(
+    // inputs
+    const Eigen::Ref<const Eigen::MatrixXd>& X, int num_top_eigenvectors,
+    // outputs
+    Eigen::MatrixXd& u_mat, Eigen::MatrixXd& laplacian, double& obj_val) {
+  // Get the normalized Laplacian
+  laplacian = constructLaplacian_(X);
+
+  // Obtain the top n_cluster eigenvectors the of the Laplacian
+  // Note Eigen::SelfAdjointEigenSolver sorts the eigenvalues in increasing
+  // order
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(laplacian);
+
+  Eigen::VectorXd eigenvals;
+  if (num_top_eigenvectors == -1) {
+    u_mat = es.eigenvectors();
+    eigenvals = es.eigenvalues();
+  } else {
+    u_mat = es.eigenvectors()(
+        Eigen::all,
+        Eigen::seq(laplacian.cols() - num_top_eigenvectors, Eigen::last));
+    eigenvals = es.eigenvalues()(
+        Eigen::seq(laplacian.cols() - num_top_eigenvectors, Eigen::last));
+  }
+
+  obj_val = eigenvals.sum();
+}
+
+//! Setup the initial affinity matrices at the beginning of the
+//! fitting procedure
+void MVSpectralClustering::fit_init_(const std::vector<Eigen::MatrixXd>& Xs,
+                                     std::vector<Eigen::MatrixXd>& sims,
+                                     int& num_clusters_info_view) {
+  // Compute the initial affinity matrices
+  std::transform(std::execution::par_unseq, Xs.begin(), Xs.end(), sims.begin(),
+                 [this, &Xs = std::as_const(Xs)](const Eigen::MatrixXd& X) {
+                   return affinityMat_(X);
+                 });
+
+  // Compute the eigendecomposition of the Laplacian using only the most
+  // informative view
+  if (auto_num_clusters_) {
+    Eigen::MatrixXd la_eigs_info_view =
+        computeEigs_(sims[info_view_], n_clusters_);
+
+    // Apply the Zelnik-Manor and Perona (2004) method to compute the
+    // number of clusters based on the data of the most informative
+    // view
+    ClusterRotate clusterrotate{};
+    std::vector<std::vector<int>> clusters =
+        clusterrotate.cluster(la_eigs_info_view);
+    num_clusters_info_view = clusters.size();
+
+    n_clusters_ = num_clusters_info_view;
+  }
+};
+
 //! Performs clustering on the multiple views of data
 /*
  *
@@ -146,27 +211,10 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
   // The affinity matrix for each view is of size num_samples_ x num_samples_
   std::vector<Eigen::MatrixXd> sims(
       n_views_, Eigen::MatrixXd(num_samples_, num_samples_));
-  std::transform(std::execution::par_unseq, Xs.begin(), Xs.end(), sims.begin(),
-                 [this, &Xs = std::as_const(Xs)](const Eigen::MatrixXd& X) {
-                   return affinityMat_(X);
-                 });
+  int num_clusters_info_view{};
+  fit_init_(Xs, sims, num_clusters_info_view);
 
-  if (auto_num_clusters_) {
-    // Compute the eigendecomposition of the Laplacian using only the most
-    // informative view
-    Eigen::MatrixXd la_eigs_info_view =
-        computeEigs_(sims[info_view_], n_clusters_);
-
-    // Apply the Zelnik-Manor and Perona (2004) method to compute the
-    // number of clusters based on the data of the most informative
-    // view
-    ClusterRotate clusterrotate{};
-    std::vector<std::vector<int>> clusters =
-        clusterrotate.cluster(la_eigs_info_view);
-    int num_clusters_info_view = clusters.size();
-
-    n_clusters_ = num_clusters_info_view;
-  }
+  n_clusters_ = num_clusters_info_view;
 
   // Initialize matrices of eigenvectors U_v for each view
   // The matrix of top eigenvectors are of size num_samples_ x n_clusters_

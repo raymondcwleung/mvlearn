@@ -9,9 +9,7 @@ target_include_directories(clusterRotate PUBLIC ${DIR_INCLUDE})
 
 add_library(MVSpectralClustering mv_spectral.cpp
                                  "${DIR_INCLUDE}/cluster/mv_spectral.h")
-
-target_include_directories(MVSpectralClustering PUBLIC ${MLPACK_INCLUDE_DIRS}
-                                                       ${DIR_INCLUDE})
+target_include_directories(MVSpectralClustering PUBLIC ${MLPACK_INCLUDE_DIRS})
 target_link_libraries(
   MVSpectralClustering
   PUBLIC Eigen3::Eigen
@@ -25,5 +23,12 @@ target_link_libraries(
          TBB::tbbmalloc)
 
 # target_compile_options(MVSpectralClustering PUBLIC -O3 -Ofast -ffast-math
-# -fPIC)
-target_compile_options(MVSpectralClustering PUBLIC -Ofast -fPIC)
+# -fPIC) target_compile_options(MVSpectralClustering PUBLIC -Ofast -fPIC)
+
+add_library(MVCoRegSpectralClustering
+            mv_coreg_spectral.cpp "${DIR_INCLUDE}/cluster/mv_coreg_spectral.h")
+target_include_directories(MVCoRegSpectralClustering
+                           PUBLIC ${MLPACK_INCLUDE_DIRS})
+target_link_libraries(
+  MVCoRegSpectralClustering PUBLIC MVSpectralClustering sklearncppClusterKMeans
+                                   Eigen3::Eigen)

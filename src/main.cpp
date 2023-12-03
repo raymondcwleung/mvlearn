@@ -6,6 +6,7 @@
 #include <map>
 #include <random>
 
+#include "cluster/mv_coreg_spectral.h"
 #include "cluster/mv_spectral.h"
 #include "sklearncpp/cluster/kmeans.h"
 #include "sklearncpp/neighbors/nearestneighbors.h"
@@ -24,7 +25,7 @@ int main() {
 
   /* std::cout << data_eigen << std::endl; */
 
-  int num_samples{200};
+  int num_samples{20};
 
   double lo{0};
   double hi{1};
@@ -37,25 +38,30 @@ int main() {
 
   /* arma::Mat<double> A(50, 7, arma::fill::randu); */
 
-  int n_cluster{11};
-  int num_features{6};
+  int n_cluster{2};
+  int num_features{3};
   int random_state{-1};  // Fix
   int info_view{0};
-  int max_iter{1};
+  int max_iter{5};
   int n_init{-1};  // Fix
-  std::string affinity{"rbf_local_scale"};
+  std::string affinity{"rbf_constant_scale"};
   /* std::string affinity{"rbf"}; */
   int n_neighbors{2};
-  double gamma{-1};
-  bool auto_num_clusters{true};
+  double gamma{1.0};
+  bool auto_num_clusters{false};
 
   std::vector<Eigen::MatrixXd> Xs{X0, X1};
 
-  mvlearn::cluster::MVSpectralClustering mvsc(
+  /* mvlearn::cluster::MVSpectralClustering mvsc( */
+  /*     n_cluster, num_samples, num_features, random_state, info_view,
+   * max_iter, */
+  /*     n_init, affinity, n_neighbors, gamma, auto_num_clusters); */
+  /* mvsc.fit(Xs); */
+
+  mvlearn::cluster::MVCoRegSpectralClustering mvcoregsc(
       n_cluster, num_samples, num_features, random_state, info_view, max_iter,
       n_init, affinity, n_neighbors, gamma, auto_num_clusters);
-
-  mvsc.fit(Xs);
+  mvcoregsc.fit(Xs);
 
   return 0;
 }

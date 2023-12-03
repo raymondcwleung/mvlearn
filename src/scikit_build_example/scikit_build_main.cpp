@@ -1,7 +1,9 @@
-#include <cluster/mv_spectral.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
+#include "cluster/mv_coreg_spectral.h"
+#include "cluster/mv_spectral.h"
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -19,9 +21,6 @@ PYBIND11_MODULE(_core, m) {
 
         .. autosummary::
            :toctree: _generate
-
-           add
-           subtract
     )pbdoc";
 
   py::class_<mvlearn::cluster::MVSpectralClustering>(m, "MVSpectralClustering")
@@ -42,18 +41,26 @@ PYBIND11_MODULE(_core, m) {
       .def("get_num_clusters",
            &mvlearn::cluster::MVSpectralClustering::get_num_clusters);
 
-  m.def("add", &add, R"pbdoc(
-        Add two numbers
-
-        Some other explanation about the add function.
-    )pbdoc");
-
-  m.def(
-      "subtract", [](int i, int j) { return i - j; }, R"pbdoc(
-        Subtract two numbers
-
-        Some other explanation about the subtract function.
-    )pbdoc");
+  py::class_<mvlearn::cluster::MVCoRegSpectralClustering,
+             mvlearn::cluster::MVSpectralClustering>(
+      m, "MVCoRegSpectralClustering")
+      .def(py::init<int,          // n_clusters
+                    int,          // num_samples
+                    int,          // num_features,
+                    int,          // random_state
+                    int,          // info_view
+                    int,          // max_iter
+                    int,          // n_init
+                    std::string,  // affinity
+                    int,          // n_neighbors
+                    double,       // gamma
+                    bool          // auto_num_clusters
+                    >())
+      .def("fit", &mvlearn::cluster::MVCoRegSpectralClustering::fit)
+      .def("fit_predict",
+           &mvlearn::cluster::MVCoRegSpectralClustering::fit_predict)
+      .def("get_num_clusters",
+           &mvlearn::cluster::MVCoRegSpectralClustering::get_num_clusters);
 
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

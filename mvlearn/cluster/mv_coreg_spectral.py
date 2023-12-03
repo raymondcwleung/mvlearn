@@ -10,12 +10,11 @@ from sklearn.cluster import KMeans
 
 from .mv_spectral import MultiviewSpectralClustering
 
-AFFINITY_METRICS = ['rbf', 'nearest_neighbors', 'poly']
+AFFINITY_METRICS = ["rbf", "nearest_neighbors", "poly"]
 
 
 class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
-
-    r'''
+    r"""
     An implementation of co-regularized multi-view spectral clustering based on
     an unsupervied version of the co-training framework.
     This algorithm uses the pairwise co-regularization scheme as described
@@ -112,23 +111,38 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
     >>> nmi = nmi_score(labels, mv_clusters, average_method='arithmetic')
     >>> print('{0:.3f}'.format(nmi))
     0.663
-    '''
+    """
 
-    def __init__(self, n_clusters=2, v_lambda=2, random_state=None,
-                 info_view=None, max_iter=10, n_init=10, affinity='rbf',
-                 gamma=None, n_neighbors=10, dict_solver_params={}):
-
-        super().__init__(n_clusters=n_clusters, random_state=random_state,
-                         info_view=info_view, max_iter=max_iter,
-                         n_init=n_init, affinity=affinity, gamma=gamma,
-                         n_neighbors=n_neighbors,
-                         dict_solver_params={})
+    def __init__(
+        self,
+        n_clusters=2,
+        v_lambda=2,
+        random_state=None,
+        info_view=None,
+        max_iter=10,
+        n_init=10,
+        affinity="rbf",
+        gamma=None,
+        n_neighbors=10,
+        dict_solver_params={},
+    ):
+        super().__init__(
+            n_clusters=n_clusters,
+            random_state=random_state,
+            info_view=info_view,
+            max_iter=max_iter,
+            n_init=n_init,
+            affinity=affinity,
+            gamma=gamma,
+            n_neighbors=n_neighbors,
+            dict_solver_params={},
+        )
 
         self.v_lambda = v_lambda
         self.objective_ = None
 
     def _init_umat(self, X):
-        r'''
+        r"""
         Computes the top several eigenvectors of the
         normalized graph laplacian of a given similarity matrix.
         The number of eigenvectors returned is equal to n_clusters.
@@ -151,7 +165,7 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
             The updated value for the objective function for the given
             view.
 
-        '''
+        """
 
         # Compute the normalized laplacian
         d_mat = np.diag(np.sum(X, axis=1))
@@ -162,15 +176,15 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
         laplacian = (laplacian + np.transpose(laplacian)) / 2.0
 
         # Obtain the top n_cluster eigenvectors of the laplacian
-        d_mat, u_mat = sp.linalg.eigh(laplacian, driver = "evd")
-        u_mat = u_mat[:, (u_mat.shape[1] - self.n_clusters):u_mat.shape[1]]
-        d_mat = d_mat[(len(d_mat) - self.n_clusters):len(d_mat)]
+        d_mat, u_mat = sp.linalg.eigh(laplacian, driver="evd")
+        u_mat = u_mat[:, (u_mat.shape[1] - self.n_clusters) : u_mat.shape[1]]
+        d_mat = d_mat[(len(d_mat) - self.n_clusters) : len(d_mat)]
 
         obj_val = np.sum(d_mat)
         return u_mat, laplacian, obj_val
 
     def fit(self, Xs):
-        r'''
+        r"""
         Performs clustering on the multiple views of data.
 
         Parameters
@@ -187,14 +201,14 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
         Returns
         -------
         self : returns an instance of self.
-        '''
+        """
 
         check_u_mats = list()
 
         # Perform checks on inputted parameters and data
         Xs = self._param_checks(Xs)
         if self.v_lambda <= 0:
-            msg = 'v_lambda must be a positive value'
+            msg = "v_lambda must be a positive value"
             raise ValueError(msg)
 
         # Compute the similarity matrices
@@ -215,11 +229,9 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
         # Iteratively solve for all U's
         n_items = Xs[0].shape[0]
         for it in range(1, self.max_iter):
-
             # Performing alternating maximization by cycling through all
             # pairs of views and updating all except view 1
             for v1 in range(1, self._n_views):
-
                 # Computing the regularization term for view v1
                 l_comp = np.zeros((n_items, n_items))
                 for v2 in range(self._n_views):
@@ -230,10 +242,9 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
                 # Adding the symmetrized graph laplacian for view v1
                 l_mat = L_mats[v1] + self.v_lambda * l_comp
 
-                d_mat, u_mat = sp.linalg.eigh(l_mat, driver = "evd")
-                u_mat = u_mat[:, (u_mat.shape[1] -
-                                  self.n_clusters):u_mat.shape[1]]
-                d_mat = d_mat[(len(d_mat) - self.n_clusters):len(d_mat)]
+                d_mat, u_mat = sp.linalg.eigh(l_mat, driver="evd")
+                u_mat = u_mat[:, (u_mat.shape[1] - self.n_clusters) : u_mat.shape[1]]
+                d_mat = d_mat[(len(d_mat) - self.n_clusters) : len(d_mat)]
 
                 U_mats[v1] = u_mat
                 obj_vals[v1, it] = np.sum(d_mat)
@@ -246,19 +257,21 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
             l_comp = (l_comp + l_comp.T) / 2
             l_mat = L_mats[0] + self.v_lambda * l_comp
 
-            d_mat, u_mat = sp.linalg.eigh(l_mat, driver = "evd")
-            u_mat = u_mat[:, (u_mat.shape[1] - self.n_clusters):u_mat.shape[1]]
-            d_mat = d_mat[(len(d_mat) - self.n_clusters):len(d_mat)]
+            d_mat, u_mat = sp.linalg.eigh(l_mat, driver="evd")
+            u_mat = u_mat[:, (u_mat.shape[1] - self.n_clusters) : u_mat.shape[1]]
+            d_mat = d_mat[(len(d_mat) - self.n_clusters) : len(d_mat)]
 
             U_mats[0] = u_mat
             obj_vals[0, it] = np.sum(d_mat)
             check_u_mats.append(U_mats[0])
         self.objective_ = obj_vals
 
-
         # Perform kmeans clustering with embedding
-        kmeans = KMeans(n_clusters=self.n_clusters, n_init=self.n_init,
-                        random_state=self.random_state)
+        kmeans = KMeans(
+            n_clusters=self.n_clusters,
+            n_init=self.n_init,
+            random_state=self.random_state,
+        )
 
         if self.info_view is not None:
             # Use a single view if one was previously designated
@@ -275,7 +288,7 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
         return self
 
     def fit_predict(self, Xs, y=None):
-        r'''
+        r"""
         Performs clustering on the multiple views of data and returns
         the cluster labels.
 
@@ -297,7 +310,7 @@ class MultiviewCoRegSpectralClustering(MultiviewSpectralClustering):
         -------
         labels : array-like, shape (n_samples,)
             The predicted cluster labels for each sample.
-        '''
+        """
 
         self.fit(Xs)
         labels = self.labels_
