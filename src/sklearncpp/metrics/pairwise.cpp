@@ -1,5 +1,7 @@
 #include "metrics/pairwise.h"
 
+#include <omp.h>
+
 #include <Eigen/Dense>
 #include <cmath>
 #include <mlpack.hpp>
@@ -74,13 +76,13 @@ Eigen::MatrixXd rbfLocalKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
   // Extract the K-th neighbor distances for each of the points x_i
   Eigen::VectorXd local_scales = distances.transpose()(Eigen::all, Eigen::last);
 
-  double scaling{0.0};
+#pragma omp parallel for
   for (int i = 0; i < num_samples; i++) {
     for (int j = 0; j < num_samples; j++) {
       if (i == j) {
         Kmat(i, j) = 0.0;
       } else {
-        scaling = local_scales(i) * local_scales(j);
+        double scaling = local_scales(i) * local_scales(j);
         Kmat(i, j) = std::exp(
             -1.0 * (X(i, Eigen::all) - X(j, Eigen::all)).squaredNorm() /
             scaling);

@@ -4,6 +4,8 @@
     "eigen3",
     "catch2",
     "pybind11",
-    "tbb"
+    "tbb",
+    "openblas",
+    "spectra"
   ]
 }

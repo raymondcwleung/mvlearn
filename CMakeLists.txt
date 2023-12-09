@@ -54,4 +54,4 @@ add_subdirectory(${DIR_SRC})
 # add_subdirectory("${CMAKE_SOURCE_DIR}/tests_cpp")
 #
 
-install(TARGETS _core DESTINATION scikit_build_example)
+install(TARGETS _core DESTINATION mvlearnpycpp)

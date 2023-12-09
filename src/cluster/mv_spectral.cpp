@@ -33,10 +33,14 @@
 
 namespace mvlearn::cluster {
 
-MVSpectralClustering::MVSpectralClustering(int n_clusters, int num_samples,
-                                           int num_features, int info_view,
-                                           int max_iter, std::string affinity,
-                                           int n_neighbors, double gamma,
+MVSpectralClustering::MVSpectralClustering(int n_clusters,
+                                           int num_samples,
+                                           int num_features,
+                                           int info_view,
+                                           int max_iter,
+                                           std::string affinity,
+                                           int n_neighbors,
+                                           double gamma,
                                            bool auto_num_clusters)
     : n_clusters_(n_clusters),
       num_samples_{num_samples},
@@ -73,7 +77,8 @@ Eigen::MatrixXd MVSpectralClustering::affinityMat_(
 
       // Compute the median of the distances
       size_t midpt = vec_distances.size() / 2;
-      std::nth_element(vec_distances.begin(), vec_distances.begin() + midpt,
+      std::nth_element(vec_distances.begin(),
+                       vec_distances.begin() + midpt,
                        vec_distances.end());
       double median = vec_distances[midpt];
 
@@ -104,7 +109,8 @@ Eigen::MatrixXd MVSpectralClustering::affinityMat_(
 }
 
 void MVSpectralClustering::constructLaplacian_(
-    const Eigen::Ref<const Eigen::MatrixXd>& X, Eigen::MatrixXd& laplacian) {
+    const Eigen::Ref<const Eigen::MatrixXd>& X,
+    Eigen::MatrixXd& laplacian) {
   // Compute the normalized Laplacian
   Eigen::VectorXd v_alt(num_samples_);
   v_alt.noalias() = X.colwise().sum().cwiseInverse().cwiseSqrt();
@@ -121,72 +127,44 @@ Eigen::MatrixXd MVSpectralClustering::constructLaplacian_(
   return (0.5 * laplacian + 0.5 * laplacian.transpose());
 }
 
-Eigen::MatrixXd MVSpectralClustering::computeEigs_(
-    const Eigen::Ref<const Eigen::MatrixXd>& X, int num_top_eigenvectors) {
+void MVSpectralClustering::computeEigs_(
+    // inputs
+    const Eigen::Ref<const Eigen::MatrixXd>& X,
+    int num_top_eigenvectors,
+    // outputs
+    Eigen::MatrixXd& u_mat,      // Matrix of the top eigenvectors
+    Eigen::MatrixXd& laplacian,  // Laplacian matrix
+    double& obj_val              // Sum of eigenvalues
+) {
   // Get the normalized Laplacian
-  Eigen::MatrixXd laplacian(num_samples_, num_samples_);
-  constructLaplacian_(X, laplacian);
-
-  // Obtain the top n_cluster eigenvectors the of the Laplacian
-  // Note Eigen::SelfAdjointEigenSolver sorts the eigenvalues in increasing
-  // order
-
-  Eigen::MatrixXd res(num_samples_, num_top_eigenvectors);
+  laplacian.noalias() = constructLaplacian_(X);
 
   // Try to use the Spectra package to compute the eigenvectors for efficiency.
-  // If Spectra fails, fall back to the the eigendecomposition solver in Eigen.
+  // If Spectra fails, fall back to the the eigendecomposition solver in
+  // Eigen.
   Spectra::DenseSymMatProd<double> op(laplacian);
   Spectra::SymEigsSolver<Spectra::DenseSymMatProd<double>> eigs(
       op,                       // op
       num_top_eigenvectors,     // nev
       2 * num_top_eigenvectors  // ncv
   );
-
   eigs.init();
-  int nconv = eigs.compute(Spectra::SortRule::LargestAlge);
+  eigs.compute(Spectra::SortRule::LargestAlge);
 
   if (eigs.info() == Spectra::CompInfo::Successful) {
-    res.noalias() = eigs.eigenvectors();
+    u_mat.noalias() = eigs.eigenvectors();
+    obj_val = eigs.eigenvalues().sum();
+
   } else {
-    std::cout << "Spectra::SymEigsSolver failed. Switching to "
-                 "Eigen::SelfAdjointEigenSolver"
-              << "\n";
+    // Note Eigen::SelfAdjointEigenSolver sorts the eigenvalues in increasing
+    // order
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(laplacian);
 
-    res.noalias() = es.eigenvectors()(
+    u_mat.noalias() = es.eigenvectors()(
         Eigen::all,
         Eigen::seq(laplacian.cols() - num_top_eigenvectors, Eigen::last));
+    obj_val = es.eigenvalues().sum();
   }
-
-  return res;
-}
-
-void MVSpectralClustering::computeEigs_(
-    // inputs
-    const Eigen::Ref<const Eigen::MatrixXd>& X, int num_top_eigenvectors,
-    // outputs
-    Eigen::MatrixXd& u_mat, Eigen::MatrixXd& laplacian, double& obj_val) {
-  // Get the normalized Laplacian
-  laplacian = constructLaplacian_(X);
-
-  // Obtain the top n_cluster eigenvectors the of the Laplacian
-  // Note Eigen::SelfAdjointEigenSolver sorts the eigenvalues in increasing
-  // order
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(laplacian);
-
-  Eigen::VectorXd eigenvals;
-  if (num_top_eigenvectors == -1) {
-    u_mat = es.eigenvectors();
-    eigenvals = es.eigenvalues();
-  } else {
-    u_mat = es.eigenvectors()(
-        Eigen::all,
-        Eigen::seq(laplacian.cols() - num_top_eigenvectors, Eigen::last));
-    eigenvals = es.eigenvalues()(
-        Eigen::seq(laplacian.cols() - num_top_eigenvectors, Eigen::last));
-  }
-
-  obj_val = eigenvals.sum();
 }
 
 //! Setup the initial affinity matrices at the beginning of the
@@ -194,14 +172,24 @@ void MVSpectralClustering::computeEigs_(
 void MVSpectralClustering::fit_init_(const std::vector<Eigen::MatrixXd>& Xs,
                                      std::vector<Eigen::MatrixXd>& sims) {
   // Compute the initial affinity matrices
-  std::transform(std::execution::par_unseq, Xs.begin(), Xs.end(), sims.begin(),
-                 [&](const Eigen::MatrixXd& X) { return affinityMat_(X); });
+  std::transform(
+      Xs.begin(), Xs.end(), sims.begin(), [&](const Eigen::MatrixXd& X) {
+        return affinityMat_(X);
+      });
 
   // Compute the eigendecomposition of the Laplacian using only the
   // most informative view
   if (auto_num_clusters_) {
-    Eigen::MatrixXd la_eigs_info_view =
-        computeEigs_(sims[info_view_], n_clusters_);
+    Eigen::MatrixXd la_eigs_info_view(num_samples_, n_clusters_);
+    Eigen::MatrixXd tmp_laplacian(num_samples_, num_samples_);
+    double tmp_obj_val{};
+
+    computeEigs_(sims[info_view_],   // X
+                 n_clusters_,        // num_top_eigenvectors
+                 la_eigs_info_view,  // u_mat
+                 tmp_laplacian,      // laplacian
+                 tmp_obj_val         // obj_val
+    );
 
     // Apply the Zelnik-Manor and Perona (2004) method to compute the
     // number of clusters based on the data of the most informative
@@ -218,9 +206,6 @@ void MVSpectralClustering::fit_init_(const std::vector<Eigen::MatrixXd>& Xs,
     // No determination of n_clusters_ (i.e. we use the provided
     // n_clusters as given)
   }
-
-  std::cout << "fit_init done"
-            << "\n";
 };
 
 //! Performs clustering on the multiple views of data
@@ -242,10 +227,22 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
   // The matrix of top eigenvectors are of size num_samples_ x n_clusters_
   std::vector<Eigen::MatrixXd> U_mats(
       n_views_, Eigen::MatrixXd(num_samples_, n_clusters_));
-  std::transform(std::execution::par_unseq, sims.begin(), sims.end(),
-                 U_mats.begin(), [&](const Eigen::MatrixXd& sim_) {
-                   return computeEigs_(sim_, n_clusters_);
-                 });
+  std::vector<Eigen::MatrixXd> tmp_laplacians(
+      n_views_, Eigen::MatrixXd(num_samples_, num_samples_));
+  std::vector<double> tmp_obj_vals(n_views_);
+  std::vector<int> idx_views(n_views_);
+  std::iota(idx_views.begin(), idx_views.end(), 0);
+
+  std::for_each(std::execution::par_unseq,
+                idx_views.begin(),
+                idx_views.end(),
+                [&](const int& view) {
+                  return computeEigs_(sims[view],
+                                      n_clusters_,
+                                      U_mats[view],
+                                      tmp_laplacians[view],
+                                      tmp_obj_vals[view]);
+                });
 
   // Iteratively compute new graph similarities, Laplacians and eigenvectors
   std::vector<Eigen::MatrixXd> eig_sums(
@@ -256,38 +253,48 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
       n_views_, Eigen::MatrixXd(num_samples_, num_samples_));
   Eigen::MatrixXd U_sum(num_samples_, num_samples_);
 
-  std::vector<int> idx_views(n_views_);
-  std::iota(idx_views.begin(), idx_views.end(), 0);
   int iter{0};
   while (iter < max_iter_) {
     // Compute the sums of the products of the spectral embeddings and their
     // transposes.
     // Note that each u_mat is of size num_samples x n_cluster. Hence,
     // each entry in eig_sums is num_samples x num_samples.
-    std::transform(std::execution::par_unseq, U_mats.begin(), U_mats.end(),
-                   eig_sums.begin(), [&](const Eigen::MatrixXd& u_mat) {
+    std::transform(std::execution::par_unseq,
+                   U_mats.begin(),
+                   U_mats.end(),
+                   eig_sums.begin(),
+                   [&](const Eigen::MatrixXd& u_mat) {
                      return (u_mat * u_mat.transpose());
                    });
     //
 
     U_sum.setZero();
-    std::for_each(eig_sums.begin(), eig_sums.end(),
+    std::for_each(eig_sums.begin(),
+                  eig_sums.end(),
                   [&](const Eigen::MatrixXd& X) { return U_sum += X; });
 
     // Compute new graph similariity representation S_v
     std::iota(idx_views.begin(), idx_views.end(), 0);
     std::for_each(
-        std::execution::par_unseq, idx_views.begin(), idx_views.end(),
+        std::execution::par_unseq,
+        idx_views.begin(),
+        idx_views.end(),
         [&](const int& view) {
           Eigen::MatrixXd mat11 = sims[view] * (U_sum - eig_sums[view]);
           new_sims[view].noalias() = 0.5 * (mat11 + mat11.transpose());
         });
 
     // Recompute eigenvectors and get new U_v's
-    std::transform(std::execution::par_unseq, new_sims.begin(), new_sims.end(),
-                   U_mats.begin(), [&](const Eigen::MatrixXd& sim_) {
-                     return computeEigs_(sim_, n_clusters_);
-                   });
+    std::for_each(std::execution::par_unseq,
+                  idx_views.begin(),
+                  idx_views.end(),
+                  [&](const int& view) {
+                    return computeEigs_(new_sims[view],
+                                        n_clusters_,
+                                        U_mats[view],
+                                        tmp_laplacians[view],
+                                        tmp_obj_vals[view]);
+                  });
 
     iter++;
   }

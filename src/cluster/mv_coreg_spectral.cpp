@@ -11,13 +11,25 @@
 
 namespace mvlearn::cluster {
 
-MVCoRegSpectralClustering::MVCoRegSpectralClustering(
-    int n_clusters, int num_samples, int num_features, int info_view,
-    int max_iter, std::string affinity, int n_neighbors, double gamma,
-    bool auto_num_clusters, double v_lambda)
-    : mvlearn::cluster::MVSpectralClustering(
-          n_clusters, num_samples, num_features, info_view, max_iter, affinity,
-          n_neighbors, gamma, auto_num_clusters),
+MVCoRegSpectralClustering::MVCoRegSpectralClustering(int n_clusters,
+                                                     int num_samples,
+                                                     int num_features,
+                                                     int info_view,
+                                                     int max_iter,
+                                                     std::string affinity,
+                                                     int n_neighbors,
+                                                     double gamma,
+                                                     bool auto_num_clusters,
+                                                     double v_lambda)
+    : mvlearn::cluster::MVSpectralClustering(n_clusters,
+                                             num_samples,
+                                             num_features,
+                                             info_view,
+                                             max_iter,
+                                             affinity,
+                                             n_neighbors,
+                                             gamma,
+                                             auto_num_clusters),
       v_lambda_(v_lambda){};
 
 void MVCoRegSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
@@ -42,19 +54,22 @@ void MVCoRegSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
       n_views_, Eigen::MatrixXd(num_samples_, num_samples_));
   Eigen::MatrixXd obj_vals = Eigen::MatrixXd::Zero(n_views_, max_iter_);
 
-  std::for_each(std::execution::par_unseq, idx_views.begin(), idx_views.end(),
-                [this, &sims = std::as_const(sims), &U_mats, &L_mats,
-                 &obj_vals](const int& view) {
-                  double o_val{};
-                  computeEigs_(sims[view],    // X
-                               n_clusters_,   // num_top_eigenvectors
-                               U_mats[view],  // u_mat
-                               L_mats[view],  // laplacian
-                               o_val          // obj_val
-                  );
+  std::for_each(
+      std::execution::par_unseq,
+      idx_views.begin(),
+      idx_views.end(),
+      [this, &sims = std::as_const(sims), &U_mats, &L_mats, &obj_vals](
+          const int& view) {
+        double o_val{};
+        computeEigs_(sims[view],    // X
+                     n_clusters_,   // num_top_eigenvectors
+                     U_mats[view],  // u_mat
+                     L_mats[view],  // laplacian
+                     o_val          // obj_val
+        );
 
-                  obj_vals(view, 0) = o_val;
-                });
+        obj_vals(view, 0) = o_val;
+      });
 
   check_u_mats[0] = U_mats[0];
 

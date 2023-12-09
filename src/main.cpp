@@ -42,11 +42,12 @@ int main() {
   int info_view{0};
   int max_iter{1};
   /* std::string affinity{"rbf_constant_scale"}; */
-  std::string affinity{"rbf_local_scale"};
+  /* std::string affinity{"rbf_local_scale"}; */
+  std::string affinity{"nearest_neighbors"};
   /* std::string affinity{"rbf"}; */
-  int n_neighbors{2};
+  int n_neighbors{10};
   double gamma{1.0};
-  bool auto_num_clusters{true};
+  bool auto_num_clusters{false};
 
   std::vector<Eigen::MatrixXd> Xs{X0, X1};
 
