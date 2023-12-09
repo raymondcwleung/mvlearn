@@ -34,8 +34,7 @@ target_compile_options(
          -Wextra
          -DEIGEN_NO_DEBUG
          -DNDEBUG
-         -fopenmp
-         -funroll-loops)
+         -fopenmp)
 
 add_library(MVCoRegSpectralClustering
             mv_coreg_spectral.cpp "${DIR_INCLUDE}/cluster/mv_coreg_spectral.h")

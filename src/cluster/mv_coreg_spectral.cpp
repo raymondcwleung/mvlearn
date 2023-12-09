@@ -30,8 +30,7 @@ void MVCoRegSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
   // The affinity matrix for each view is of size num_samples_ x num_samples_
   std::vector<Eigen::MatrixXd> sims(
       n_views_, Eigen::MatrixXd(num_samples_, num_samples_));
-  int num_clusters_info_view{};
-  fit_init_(Xs, sims, num_clusters_info_view);
+  fit_init_(Xs, sims);
 
   std::vector<int> idx_views(n_views_);
   std::iota(idx_views.begin(), idx_views.end(), 0);

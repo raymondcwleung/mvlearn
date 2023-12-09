@@ -24,8 +24,7 @@ class MVSpectralClustering {
   int n_views_{};
 
   void fit_init_(const std::vector<Eigen::MatrixXd>& Xs,
-                 std::vector<Eigen::MatrixXd>& sims,
-                 int& num_clusters_info_view);
+                 std::vector<Eigen::MatrixXd>& sims);
 
   Eigen::MatrixXd affinityMat_(const Eigen::Ref<const Eigen::MatrixXd>& X);
 

@@ -4,4 +4,4 @@ target_link_libraries(
                TBB::tbb TBB::tbbmalloc)
 target_include_directories(_core PUBLIC ${DIR_INCLUDE})
 target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
-target_compile_options(_core PUBLIC -O3 -DNDEBUG)
+target_compile_options(_core PUBLIC -O3 -DNDEBUG -fopenmp)

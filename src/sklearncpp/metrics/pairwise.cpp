@@ -77,9 +77,14 @@ Eigen::MatrixXd rbfLocalKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
   double scaling{0.0};
   for (int i = 0; i < num_samples; i++) {
     for (int j = 0; j < num_samples; j++) {
-      scaling = local_scales(i) * local_scales(j);
-      Kmat(i, j) = std::exp(
-          -1.0 * (X(i, Eigen::all) - X(j, Eigen::all)).squaredNorm() / scaling);
+      if (i == j) {
+        Kmat(i, j) = 0.0;
+      } else {
+        scaling = local_scales(i) * local_scales(j);
+        Kmat(i, j) = std::exp(
+            -1.0 * (X(i, Eigen::all) - X(j, Eigen::all)).squaredNorm() /
+            scaling);
+      }
     }
   }
 
