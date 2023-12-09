@@ -11,4 +11,4 @@ target_link_libraries(main PUBLIC MVSpectralClustering
 # MVSpectralClustering) sklearncppNearestNeighbors sklearncppClusterKMeans
 # sklearncppMetricsPairwise Eigen3::Eigen)
 target_include_directories(main PUBLIC ${DIR_INCLUDE})
-target_compile_options(main PUBLIC -Wall)
+target_compile_options(main PUBLIC -Wall -O3)

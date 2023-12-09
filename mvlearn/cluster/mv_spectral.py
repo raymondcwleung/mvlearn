@@ -256,7 +256,7 @@ class MultiviewSpectralClustering(BaseCluster):
         # To ensure PSD
         min_val = laplacian.min()
         if min_val < 0:
-            laplacian = laplacian + min_val
+            laplacian = laplacian + (-1) * min_val
 
         # Obtain the top n_cluster eigenvectors of the laplacian
         _, u_mat = sp.linalg.eigh(laplacian, driver="evd")
@@ -386,8 +386,8 @@ class MultiviewSpectralClustering(BaseCluster):
 
                 new_sims.append(mat1)
 
-            # Recompute eigenvectors
-            U_mats = [self._compute_eigs(sim) for sim in new_sims]
+                # Recompute eigenvectors
+                U_mats = [self._compute_eigs(sim) for sim in new_sims]
 
         # Row normalize
         for view in range(self._n_views):

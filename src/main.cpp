@@ -1,4 +1,3 @@
-
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 #include <cstddef>
@@ -25,7 +24,7 @@ int main() {
 
   /* std::cout << data_eigen << std::endl; */
 
-  int num_samples{20};
+  int num_samples{1000};
 
   double lo{0};
   double hi{1};
@@ -40,10 +39,8 @@ int main() {
 
   int n_cluster{2};
   int num_features{3};
-  int random_state{-1};  // Fix
   int info_view{0};
-  int max_iter{5};
-  int n_init{-1};  // Fix
+  int max_iter{1};
   std::string affinity{"rbf_constant_scale"};
   /* std::string affinity{"rbf"}; */
   int n_neighbors{2};
@@ -52,16 +49,15 @@ int main() {
 
   std::vector<Eigen::MatrixXd> Xs{X0, X1};
 
-  /* mvlearn::cluster::MVSpectralClustering mvsc( */
-  /*     n_cluster, num_samples, num_features, random_state, info_view,
-   * max_iter, */
-  /*     n_init, affinity, n_neighbors, gamma, auto_num_clusters); */
-  /* mvsc.fit(Xs); */
+  mvlearn::cluster::MVSpectralClustering mvsc(
+      n_cluster, num_samples, num_features, info_view, max_iter, affinity,
+      n_neighbors, gamma, auto_num_clusters);
+  mvsc.fit(Xs);
 
-  mvlearn::cluster::MVCoRegSpectralClustering mvcoregsc(
-      n_cluster, num_samples, num_features, random_state, info_view, max_iter,
-      n_init, affinity, n_neighbors, gamma, auto_num_clusters);
-  mvcoregsc.fit(Xs);
+  /* mvlearn::cluster::MVCoRegSpectralClustering mvcoregsc( */
+  /*     n_cluster, num_samples, num_features, info_view, max_iter, affinity, */
+  /*     n_neighbors, gamma, auto_num_clusters); */
+  /* mvcoregsc.fit(Xs); */
 
   return 0;
 }

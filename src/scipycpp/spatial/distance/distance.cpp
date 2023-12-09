@@ -18,7 +18,8 @@ namespace scipycpp::spatial::distance {
  *
  * \return A \f$ m \times m \f$ distance matrix \f$ Y \f$ is returned.
  */
-Eigen::MatrixXd cdist(const Eigen::MatrixXd& XA, const Eigen::MatrixXd& XB) {
+Eigen::MatrixXd cdist(const Eigen::Ref<const Eigen::MatrixXd>& XA,
+                      const Eigen::Ref<const Eigen::MatrixXd>& XB) {
   // NOTE:: Not checking that XA.rows() is the same as XB.rows()
   int num_features = static_cast<int>(XA.rows());
 

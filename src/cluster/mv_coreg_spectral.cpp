@@ -1,6 +1,7 @@
 #include "cluster/mv_coreg_spectral.h"
 
 #include <Eigen/src/Core/Matrix.h>
+#include <pstl/glue_execution_defs.h>
 
 #include <Eigen/Dense>
 #include <execution>
@@ -11,12 +12,13 @@
 namespace mvlearn::cluster {
 
 MVCoRegSpectralClustering::MVCoRegSpectralClustering(
-    int n_clusters, int num_samples, int num_features, int random_state,
-    int info_view, int max_iter, int n_init, std::string affinity,
-    int n_neighbors, double gamma, bool auto_num_clusters)
+    int n_clusters, int num_samples, int num_features, int info_view,
+    int max_iter, std::string affinity, int n_neighbors, double gamma,
+    bool auto_num_clusters, double v_lambda)
     : mvlearn::cluster::MVSpectralClustering(
-          n_clusters, num_samples, num_features, random_state, info_view,
-          max_iter, n_init, affinity, n_neighbors, gamma, auto_num_clusters){};
+          n_clusters, num_samples, num_features, info_view, max_iter, affinity,
+          n_neighbors, gamma, auto_num_clusters),
+      v_lambda_(v_lambda){};
 
 void MVCoRegSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
   n_views_ = Xs.size();
@@ -41,7 +43,7 @@ void MVCoRegSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
       n_views_, Eigen::MatrixXd(num_samples_, num_samples_));
   Eigen::MatrixXd obj_vals = Eigen::MatrixXd::Zero(n_views_, max_iter_);
 
-  std::for_each(idx_views.begin(), idx_views.end(),
+  std::for_each(std::execution::par_unseq, idx_views.begin(), idx_views.end(),
                 [this, &sims = std::as_const(sims), &U_mats, &L_mats,
                  &obj_vals](const int& view) {
                   double o_val{};
@@ -59,8 +61,6 @@ void MVCoRegSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
 
   // Iteratively solve for all U's
   int n_items = num_samples_;
-
-  double v_lambda_ = 0.5;
 
   Eigen::MatrixXd l_comp = Eigen::MatrixXd(n_items, n_items);
   Eigen::MatrixXd l_mat = Eigen::MatrixXd(num_samples_, num_samples_);
@@ -82,14 +82,12 @@ void MVCoRegSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
         if (v1 != v2) {
           l_comp += U_mats[v2] * U_mats[v2].transpose();
         }
-        l_comp = 0.5 * (l_comp + l_comp.transpose());
-
-        // Adding the symmetrized graph Laplacian for view v1
-        l_mat = L_mats[v1] + v_lambda_ * l_comp;
       }
+      l_comp = 0.5 * (l_comp + l_comp.transpose());
 
+      // Adding the symmetrized graph Laplacian for view v1
+      l_mat = L_mats[v1] + v_lambda_ * l_comp;
       computeEigs_(l_mat, n_clusters_, u_mat, laplacian, o_val);
-
       U_mats[v1] = u_mat;
       obj_vals(v1, it) = o_val;
     }

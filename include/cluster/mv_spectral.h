@@ -9,8 +9,6 @@ namespace mvlearn::cluster {
 
 class MVSpectralClustering {
  private:
-  int random_state_{};
-  int n_init_{};
   double gamma_{};
   int n_neighbors_{};
   bool auto_num_clusters_{};
@@ -29,13 +27,22 @@ class MVSpectralClustering {
                  std::vector<Eigen::MatrixXd>& sims,
                  int& num_clusters_info_view);
 
-  Eigen::MatrixXd affinityMat_(const Eigen::MatrixXd& X);
+  Eigen::MatrixXd affinityMat_(const Eigen::Ref<const Eigen::MatrixXd>& X);
 
   Eigen::MatrixXd constructLaplacian_(
       const Eigen::Ref<const Eigen::MatrixXd>& X);
 
+  void constructLaplacian_(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                           Eigen::MatrixXd& laplacian);
+
   Eigen::MatrixXd computeEigs_(const Eigen::Ref<const Eigen::MatrixXd>& X,
                                int num_top_eigenvectors);
+
+  void computeEigs_(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                    int num_top_eigenvectors, Eigen::MatrixXd& u_mat);
+
+  void computeEigs_(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                    Eigen::MatrixXd& laplacian, int num_top_eigenvectors);
 
   void computeEigs_(
       // inputs
@@ -50,9 +57,9 @@ class MVSpectralClustering {
   Eigen::VectorXi labels_{};
 
   MVSpectralClustering(int n_clusters, int num_samples, int num_features,
-                       int random_state, int info_view, int max_iter,
-                       int n_init, std::string affinity, int n_neighbors,
-                       double gamma = -1, bool auto_num_clusters = false);
+                       int info_view, int max_iter, std::string affinity,
+                       int n_neighbors, double gamma = -1,
+                       bool auto_num_clusters = false);
 
   void fit(const std::vector<Eigen::MatrixXd>& Xs);
   Eigen::VectorXi fit_predict(const std::vector<Eigen::MatrixXd>& Xs);

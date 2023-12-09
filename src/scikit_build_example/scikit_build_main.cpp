@@ -8,8 +8,6 @@
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
-int add(int i, int j) { return i + j; }
-
 namespace py = pybind11;
 
 PYBIND11_MODULE(_core, m) {
@@ -27,10 +25,8 @@ PYBIND11_MODULE(_core, m) {
       .def(py::init<int,          // n_clusters
                     int,          // num_samples
                     int,          // num_features,
-                    int,          // random_state
                     int,          // info_view
                     int,          // max_iter
-                    int,          // n_init,
                     std::string,  // affinity
                     int,          // n_neighbors
                     double,       // gamma
@@ -47,10 +43,8 @@ PYBIND11_MODULE(_core, m) {
       .def(py::init<int,          // n_clusters
                     int,          // num_samples
                     int,          // num_features,
-                    int,          // random_state
                     int,          // info_view
                     int,          // max_iter
-                    int,          // n_init
                     std::string,  // affinity
                     int,          // n_neighbors
                     double,       // gamma

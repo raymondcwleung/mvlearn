@@ -6,7 +6,8 @@
 
 namespace scipycpp::spatial::distance {
 
-Eigen::MatrixXd cdist(const Eigen::MatrixXd& XA, const Eigen::MatrixXd& XB);
+Eigen::MatrixXd cdist(const Eigen::Ref<const Eigen::MatrixXd>& XA,
+                      const Eigen::Ref<const Eigen::MatrixXd>& XB);
 
 }
 
