@@ -12,7 +12,10 @@ Eigen::MatrixXd rbfKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
 Eigen::MatrixXd rbfKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
                           double gamma);
 
+Eigen::MatrixXd cosineKernel(const Eigen::Ref<const Eigen::MatrixXd>& X);
+
 Eigen::MatrixXd rbfLocalKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                               int norm_p,
                                int num_neighbors = 7);
 
 }  // namespace sklearncpp::metrics::pairwise

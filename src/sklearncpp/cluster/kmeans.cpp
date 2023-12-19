@@ -10,8 +10,8 @@
 
 namespace sklearn::cluster {
 
-KMeans::KMeans(int n_clusters, int max_iter)
-    : n_clusters_{n_clusters}, max_iter_{max_iter} {};
+KMeans::KMeans(int n_clusters, int max_iter, size_t seed)
+    : n_clusters_{n_clusters}, max_iter_{max_iter}, seed_{seed} {};
 
 //! KMeans fit
 /*!
@@ -24,13 +24,40 @@ void KMeans::fit(const Eigen::Ref<const Eigen::MatrixXd>& X) {
   // However, the mlpack::KMeans methods assume the data matrices are of the
   // shape num_features x num_samples.
 
+  /* std::cout << "X rows" << X.rows() << "\n"; */
+  /* std::cout << "X cols" << X.cols() << "\n"; */
+
   num_samples_ = X.rows();
   num_features_ = X.cols();
   arma_X_transposed_ = utilseigenarma::castEigenToArma<double>(X).t();
 
+  /* std::cout << "num_samples_" << num_samples_ << "\n"; */
+  /* std::cout << "num_features_" << num_samples_ << "\n"; */
+
+  mlpack::RandomSeed(seed_);
+
+  /* std::cout << "Let's go Kmeans fit" */
+  /*           << "\n"; */
+  /**/
+  /* std::cout << "arma_X_transposed_ rows" << arma_X_transposed_.n_rows <<
+   * "\n"; */
+  /* std::cout << "arma_X_transposed_ cols" << arma_X_transposed_.n_cols <<
+   * "\n"; */
+
   // KMeans fit
   mlpack::KMeans<> km;
-  km.Cluster(arma_X_transposed_, n_clusters_, assignments_, centroids_);
+
+  /* std::cout << "Am I OK?" */
+  /*           << "\n"; */
+
+  km.Cluster(arma_X_transposed_,  // data
+             n_clusters_,         // clusters
+             assignments_,        // assignments
+             centroids_           // centroids
+  );
+
+  /* std::cout << "Done Kmeans fit" */
+  /*           << "\n"; */
 };
 
 //! Given the new data, assign clusters
@@ -53,6 +80,9 @@ Eigen::VectorXi KMeans::fit_predict(
     const Eigen::Ref<const Eigen::MatrixXd>& X) {
   // First fit
   this->fit(X);
+
+  /* std::cout << "All done Kmeans fit" */
+  /*           << "\n"; */
 
   // Now assign clusters
   arma::Row<size_t> new_assignments{this->assign(arma_X_transposed_)};

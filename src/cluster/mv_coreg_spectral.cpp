@@ -20,6 +20,7 @@ MVCoRegSpectralClustering::MVCoRegSpectralClustering(int n_clusters,
                                                      int n_neighbors,
                                                      double gamma,
                                                      bool auto_num_clusters,
+                                                     bool use_spectra,
                                                      double v_lambda)
     : mvlearn::cluster::MVSpectralClustering(n_clusters,
                                              num_samples,
@@ -29,7 +30,8 @@ MVCoRegSpectralClustering::MVCoRegSpectralClustering(int n_clusters,
                                              affinity,
                                              n_neighbors,
                                              gamma,
-                                             auto_num_clusters),
+                                             auto_num_clusters,
+                                             use_spectra),
       v_lambda_(v_lambda){};
 
 void MVCoRegSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {

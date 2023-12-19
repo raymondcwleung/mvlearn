@@ -6,6 +6,16 @@
 #include <cmath>
 #include <mlpack.hpp>
 
+#include "Eigen/src/Core/Matrix.h"
+#include "Eigen/src/Core/util/Constants.h"
+#include "mlpack/core/kernels/cosine_distance.hpp"
+#include "mlpack/core/kernels/gaussian_kernel.hpp"
+#include "mlpack/core/kernels/linear_kernel.hpp"
+#include "mlpack/core/kernels/spherical_kernel.hpp"
+#include "mlpack/core/metrics/ip_metric.hpp"
+#include "mlpack/core/metrics/lmetric.hpp"
+#include "mlpack/core/metrics/mahalanobis_distance.hpp"
+#include "mlpack/core/tree/binary_space_tree/typedef.hpp"
 #include "neighbors/nearestneighbors.h"
 #include "utils_eigenarma/conversions.h"
 
@@ -46,11 +56,38 @@ Eigen::MatrixXd rbfKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
   return rbfKernel(X, X, gamma);
 }
 
+Eigen::MatrixXd cosineKernel(const Eigen::Ref<const Eigen::MatrixXd>& X) {
+  int num_samples = X.rows();
+
+  arma::Mat<double> arma_X = utilseigenarma::castEigenToArma<double>(X);
+  arma::Mat<double> arma_Kmat(num_samples, num_samples);
+
+  std::cout << "arma_X nrow" << arma_X.n_rows << "\n";
+  std::cout << "arma_X ncol" << arma_X.n_cols << "\n";
+  /* std::cout << "arma_X" << arma_X << "\n"; */
+
+  mlpack::metric::CosineDistance dist;
+
+  for (int i = 0; i < num_samples; i++) {
+    for (int j = 0; j < num_samples; j++) {
+      arma_Kmat(i, j) = dist.Evaluate(arma_X.row(i), arma_X.row(j));
+    }
+  }
+
+  std::cout << "Done calc"
+            << "\n";
+
+  Eigen::MatrixXd Kmat = utilseigenarma::castArmaToEigen<double>(arma_Kmat);
+
+  return Kmat;
+}
+
 //! Compute a local scaling RBF kernel between the rows of X and the rows of Y.
 /*!
  * See Zelnik-Manor and Perona (2004).
  */
 Eigen::MatrixXd rbfLocalKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                               int norm_p,
                                int num_neighbors) {
   // Number of rows of X is the number of sample points. Number of columns of X
   // is the dimension size of the vector space.
@@ -64,11 +101,26 @@ Eigen::MatrixXd rbfLocalKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
   // Critical to take the transpose for mlpack::NeighborSearch
   arma_X = arma_X.t();
 
-  mlpack::NeighborSearch<mlpack::NearestNeighborSort, mlpack::EuclideanDistance>
-      nn(arma_X);
   arma::Mat<std::size_t> arma_neighbors;
   arma::Mat<double> arma_distances;
-  nn.Search(num_neighbors, arma_neighbors, arma_distances);
+
+  if (norm_p == 2) {
+    mlpack::NeighborSearch<mlpack::NearestNeighborSort,  // SortPolicy
+                           mlpack::EuclideanDistance,    // MetricType
+                           arma::mat,                    // MatType
+                           mlpack::tree::VPTree          // TreeType
+                           >
+        nn(arma_X);
+    nn.Search(num_neighbors, arma_neighbors, arma_distances);
+  } else if (norm_p == 1) {
+    mlpack::NeighborSearch<mlpack::NearestNeighborSort,  // SortPolicy
+                           mlpack::ManhattanDistance,    // MetricType
+                           arma::mat,                    // MatType
+                           mlpack::tree::VPTree          // TreeType
+                           >
+        nn(arma_X);
+    nn.Search(num_neighbors, arma_neighbors, arma_distances);
+  }
 
   // distances is num_features x num_samples matrix
   Eigen::MatrixXd distances = utilseigenarma::castArmaToEigen(arma_distances);
@@ -83,9 +135,15 @@ Eigen::MatrixXd rbfLocalKernel(const Eigen::Ref<const Eigen::MatrixXd>& X,
         Kmat(i, j) = 0.0;
       } else {
         double scaling = local_scales(i) * local_scales(j);
-        Kmat(i, j) = std::exp(
-            -1.0 * (X(i, Eigen::all) - X(j, Eigen::all)).squaredNorm() /
-            scaling);
+
+        double norm_dist_val;
+        if (norm_p == 2) {
+          norm_dist_val = (X(i, Eigen::all) - X(j, Eigen::all)).lpNorm<2>();
+        } else if (norm_p == 1) {
+          norm_dist_val = (X(i, Eigen::all) - X(j, Eigen::all)).lpNorm<1>();
+        }
+
+        Kmat(i, j) = std::exp(-1.0 * norm_dist_val / scaling);
       }
     }
   }

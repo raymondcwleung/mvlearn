@@ -21,7 +21,8 @@ PYBIND11_MODULE(_core, m) {
            :toctree: _generate
     )pbdoc";
 
-  py::class_<mvlearn::cluster::MVSpectralClustering>(m, "MVSpectralClustering")
+  py::class_<mvlearn::cluster::MVSpectralClustering>(
+      m, "MultiviewSpectralClustering")
       .def(py::init<int,          // n_clusters
                     int,          // num_samples
                     int,          // num_features,
@@ -30,7 +31,8 @@ PYBIND11_MODULE(_core, m) {
                     std::string,  // affinity
                     int,          // n_neighbors
                     double,       // gamma
-                    bool          // auto_num_clusters
+                    bool,         // auto_num_clusters
+                    bool          // use_spectra
                     >())
       .def("fit", &mvlearn::cluster::MVSpectralClustering::fit)
       .def("fit_predict", &mvlearn::cluster::MVSpectralClustering::fit_predict)
@@ -39,7 +41,7 @@ PYBIND11_MODULE(_core, m) {
 
   py::class_<mvlearn::cluster::MVCoRegSpectralClustering,
              mvlearn::cluster::MVSpectralClustering>(
-      m, "MVCoRegSpectralClustering")
+      m, "MultiviewCoRegSpectralClustering")
       .def(py::init<int,          // n_clusters
                     int,          // num_samples
                     int,          // num_features,
@@ -48,7 +50,8 @@ PYBIND11_MODULE(_core, m) {
                     std::string,  // affinity
                     int,          // n_neighbors
                     double,       // gamma
-                    bool          // auto_num_clusters
+                    bool,         // auto_num_clusters
+                    bool          // use_spectra
                     >())
       .def("fit", &mvlearn::cluster::MVCoRegSpectralClustering::fit)
       .def("fit_predict",

@@ -16,10 +16,16 @@ class MVCoRegSpectralClustering
   Eigen::MatrixXd embedding_{};
   Eigen::VectorXi labels_{};
 
-  MVCoRegSpectralClustering(int n_clusters, int num_samples, int num_features,
-                            int info_view, int max_iter, std::string affinity,
-                            int n_neighbors, double gamma = -1,
+  MVCoRegSpectralClustering(int n_clusters,
+                            int num_samples,
+                            int num_features,
+                            int info_view,
+                            int max_iter,
+                            std::string affinity,
+                            int n_neighbors,
+                            double gamma = -1,
                             bool auto_num_clusters = false,
+                            bool use_spectra = true,
                             double v_lambda = 0.5);
 
   void fit(const std::vector<Eigen::MatrixXd>& Xs);

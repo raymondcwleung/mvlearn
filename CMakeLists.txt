@@ -10,6 +10,8 @@ project(MyPoem VERSION 0.1.0)
 
 # set(CMAKE_BUILD_TYPE Debug)
 
+set(CONDA_ENV "/home/leungrc/miniforge3/envs/leung-multiview")
+
 # IDE prettiness
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -26,6 +28,10 @@ find_package(TBB REQUIRED)
 find_package(Spectra CONFIG REQUIRED)
 
 find_path(MLPACK_INCLUDE_DIRS "mlpack/mlpack.hpp")
+
+add_library(Rcpp INTERFACE)
+target_include_directories(Rcpp
+                           INTERFACE "${CONDA_ENV}/lib/R/library/Rcpp/include/")
 
 # Use BLAS and LAPACK for Eigen
 add_definitions(-DEIGEN_USE_BLAS -DEIGEN_USE_LAPACKE_STRICT)

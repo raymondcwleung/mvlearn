@@ -8,7 +8,7 @@ namespace sklearn::cluster {
 
 class KMeans {
  public:
-  KMeans(int n_clusters, int max_iter);
+  KMeans(int n_clusters, int max_iter, size_t seed = 123456);
 
   Eigen::VectorXi fit_predict(const Eigen::Ref<const Eigen::MatrixXd>& X);
 
@@ -17,6 +17,7 @@ class KMeans {
   int max_iter_{};
   int num_samples_{};
   int num_features_{};
+  size_t seed_{};
 
   arma::Mat<double> centroids_{};
   arma::Row<size_t> assignments_{};

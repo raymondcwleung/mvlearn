@@ -12,6 +12,7 @@ class MVSpectralClustering {
   double gamma_{};
   int n_neighbors_{};
   bool auto_num_clusters_{};
+  bool use_spectra_{};
 
  protected:
   int n_clusters_{};
@@ -60,7 +61,8 @@ class MVSpectralClustering {
                        std::string affinity,
                        int n_neighbors,
                        double gamma = -1,
-                       bool auto_num_clusters = false);
+                       bool auto_num_clusters = false,
+                       bool use_spectra = true);
 
   void fit(const std::vector<Eigen::MatrixXd>& Xs);
   Eigen::VectorXi fit_predict(const std::vector<Eigen::MatrixXd>& Xs);

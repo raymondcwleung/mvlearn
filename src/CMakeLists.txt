@@ -2,7 +2,7 @@ add_subdirectory("cluster")
 add_subdirectory("scipycpp")
 add_subdirectory("sklearncpp")
 add_subdirectory("mvlearnpycpp")
-add_subdirectory("mvlearn")
+# add_subdirectory("mvlearnr")
 
 add_executable(main main.cpp)
 target_link_libraries(main PUBLIC MVSpectralClustering
