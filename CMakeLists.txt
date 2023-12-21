@@ -3,14 +3,29 @@ cmake_minimum_required(VERSION 3.20..3.28)
 # Required libraries / packages
 set(CMAKE_TOOLCHAIN_FILE "./vcpkg/scripts/buildsystems/vcpkg.cmake")
 
-set(ENV{OMP_NUM_THREADS} 4)
+set(CONDA_ENV "/PHShome/zl160/miniforge3/envs/leung-multiview-mini")
+
+# Set compilers
+#set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+#set(CMAKE_C_COMPILER_WORKS 1)
+#set(CMAKE_CXX_COMPILER_WORKS 1)
+#set(CMAKE_MAKE_PROGRAM "${CONDA_ENV}/bin/ninja")
+#set(CMAKE_CXX_COMPILER "${CONDA_ENV}/bin/x86_64-conda-linux-gnu-g++")
+#set(CMAKE_C_COMPILER "${CONDA_ENV}/bin/x86_64-conda-linux-gnu-gcc")
+#set(CMAKE_Fortran_COMPILER "${CONDA_ENV}/bin/x86_64-conda-linux-gnu-gfortran")
+
+# C++ standards
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+#set(ENV{OMP_NUM_THREADS} 4)
 
 # Needed for vcpkg
 project(MyPoem VERSION 0.1.0)
 
 # set(CMAKE_BUILD_TYPE Debug)
 
-set(CONDA_ENV "/home/leungrc/miniforge3/envs/leung-multiview")
 
 # IDE prettiness
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -34,14 +49,12 @@ target_include_directories(Rcpp
                            INTERFACE "${CONDA_ENV}/lib/R/library/Rcpp/include/")
 
 # Use BLAS and LAPACK for Eigen
-add_definitions(-DEIGEN_USE_BLAS -DEIGEN_USE_LAPACKE_STRICT)
+#add_definitions(-DEIGEN_USE_BLAS -DEIGEN_USE_LAPACKE_STRICT)
 
-# C++ standards
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 # # For Catch2 include(CTest) include(Catch)
+
+add_definitions(-DARMA_DONT_USE_WRAPPERS)
 
 # Include source directory
 set(DIR_SRC "${PROJECT_SOURCE_DIR}/src")

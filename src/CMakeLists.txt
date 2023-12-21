@@ -7,8 +7,5 @@ add_subdirectory("mvlearnpycpp")
 add_executable(main main.cpp)
 target_link_libraries(main PUBLIC MVSpectralClustering
                                   MVCoRegSpectralClustering)
-
-# MVSpectralClustering) sklearncppNearestNeighbors sklearncppClusterKMeans
-# sklearncppMetricsPairwise Eigen3::Eigen)
 target_include_directories(main PUBLIC ${DIR_INCLUDE})
-target_compile_options(main PUBLIC -Wall -O3)
+target_compile_options(main PUBLIC -Wall -O3 -llapack -lblas)

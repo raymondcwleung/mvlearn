@@ -1,5 +1,6 @@
 {
-  "dependencies" : [ 
+  "dependencies": [
+      "armadillo",
     "mlpack",
     "eigen3",
     "catch2",
@@ -7,5 +8,7 @@
     "tbb",
     "openblas",
     "spectra"
-  ]
+  ],
+  "overrides" : [ {"name": "mlpack", "version" : "4.2.0"}, {"name": "armadillo", "version": "12.4.1"} ],
+  "builtin-baseline": "f1a46998aef207e6f289f4f0ea3c476c55805c9a"
 }
