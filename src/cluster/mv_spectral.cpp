@@ -236,10 +236,6 @@ void MVSpectralClustering::fit_init_(const std::vector<Eigen::MatrixXd>& Xs,
 void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
   n_views_ = Xs.size();
 
-  /* std::cout << "n_views_" << n_views_ << "\n"; */
-  /* std::cout << "num_samples_" << num_samples_ << "\n"; */
-  /* std::cout << "num_features_" << num_features_ << "\n"; */
-
   // Compute the similarity matrices W_v for each of the views
   // The affinity matrix for each view is of size num_samples_ x num_samples_
   // Note that n_clusters_ might be updated here, depending on whether we have
@@ -247,9 +243,6 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
   std::vector<Eigen::MatrixXd> sims(
       n_views_, Eigen::MatrixXd(num_samples_, num_samples_));
   fit_init_(Xs, sims);
-
-  /* std::cout << "Done fit_init" */
-  /*           << "\n"; */
 
   // Initialize matrices of eigenvectors U_v for each view
   // The matrix of top eigenvectors are of size num_samples_ x n_clusters_
@@ -272,11 +265,6 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
                                       tmp_obj_vals[view]);
                 });
 
-  /* std::cout << "U_mats[0]" << U_mats[0] << "\n"; */
-  /**/
-  /* std::cout << "computeEigs_ init U_v's" */
-  /*           << "\n"; */
-
   // Iteratively compute new graph similarities, Laplacians and eigenvectors
   std::vector<Eigen::MatrixXd> eig_sums(
       n_views_, Eigen::MatrixXd(num_samples_, num_samples_));
@@ -287,8 +275,6 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
 
   int iter{0};
   while (iter < max_iter_) {
-    /* std::cout << "iter :" << iter << "\n"; */
-
     // Compute the sums of the products of the spectral embeddings and their
     // transposes.
     // Note that each u_mat is of size num_samples x n_cluster. Hence,
@@ -301,22 +287,11 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
                      return (u_mat * u_mat.transpose());
                    });
 
-    /* std::cout << "eigsums" << eig_sums[0] << "\n"; */
-
     Eigen::MatrixXd U_sum = Eigen::MatrixXd::Zero(num_samples_, num_samples_);
-
-    /* std::cout << "eig_sums[0].rows() = " << eig_sums[0].rows() << "\n"; */
-    /* std::cout << "eig_sums[0].cols() = " << eig_sums[0].cols() << "\n"; */
-
-    /* for (int view = 0; view < n_views_; view++) { */
-    /*   U_sum += eig_sums[view]; */
-    /* } */
 
     std::for_each(eig_sums.begin(),
                   eig_sums.end(),
                   [&](const Eigen::MatrixXd& X) { return U_sum += X; });
-
-    /* std::cout << "U_sum" << U_sum << "\n"; */
 
     // Compute new graph similariity representation S_v
     std::iota(idx_views.begin(), idx_views.end(), 0);
@@ -328,9 +303,6 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
           Eigen::MatrixXd mat11 = sims[view] * (U_sum - eig_sums[view]);
           new_sims[view].noalias() = 0.5 * (mat11 + mat11.transpose());
         });
-
-    /* std::cout << "new_sims" */
-    /*           << "\n"; */
 
     // Recompute eigenvectors and get new U_v's
     std::for_each(std::execution::par_unseq,
@@ -344,14 +316,8 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
                                         tmp_obj_vals[view]);
                   });
 
-    /* std::cout << "New U_v's" */
-    /*           << "\n"; */
-
     iter++;
   }
-
-  /* std::cout << "Done U_mats" */
-  /*           << "\n"; */
 
   // Row normalize
   for (int view = 0; view < n_views_; view++) {
@@ -359,11 +325,6 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
       U_mats[view].row(j).normalize();
     }
   }
-
-  /* std::cout << "Ready for k-means clustering" */
-  /*           << "\n"; */
-  /**/
-  /* std::cout << "U_mats size" << U_mats.size() << "\n"; */
 
   // Perform k-means clustering
   sklearn::cluster::KMeans kmeans(n_clusters_, max_iter_);

@@ -4,6 +4,7 @@
 
 #include "cluster/mv_coreg_spectral.h"
 #include "cluster/mv_spectral.h"
+#include "cluster/sv_spectral.h"
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -58,6 +59,24 @@ PYBIND11_MODULE(_core, m) {
            &mvlearn::cluster::MVCoRegSpectralClustering::fit_predict)
       .def("get_num_clusters",
            &mvlearn::cluster::MVCoRegSpectralClustering::get_num_clusters);
+
+  py::class_<mvlearn::cluster::SVSpectralClustering,
+             mvlearn::cluster::MVSpectralClustering>(
+      m, "SingleviewSpectralClustering")
+      .def(py::init<int,          // n_clusters
+                    int,          // num_samples
+                    int,          // num_features,
+                    int,          // max_iter
+                    std::string,  // affinity
+                    int,          // n_neighbors
+                    double,       // gamma
+                    bool,         // auto_num_clusters
+                    bool          // use_spectra
+                    >())
+      .def("fit", &mvlearn::cluster::SVSpectralClustering::fit)
+      .def("fit_predict", &mvlearn::cluster::SVSpectralClustering::fit_predict)
+      .def("get_num_clusters",
+           &mvlearn::cluster::SVSpectralClustering::get_num_clusters);
 
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

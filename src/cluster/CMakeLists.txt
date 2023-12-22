@@ -46,3 +46,32 @@ target_link_libraries(
 # OpenMP::OpenMP_CXX TBB::tbb TBB::tbbmalloc)
 # target_compile_options(MVCoRegSpectralClustering PUBLIC -O3 -fPIC -fopenmp)
 target_compile_options(MVCoRegSpectralClustering PUBLIC -O0 -g)
+
+add_library(SVSpectralClustering sv_spectral.cpp
+                                 "${DIR_INCLUDE}/cluster/sv_spectral.h")
+target_include_directories(MVSpectralClustering PUBLIC ${MLPACK_INCLUDE_DIRS})
+target_link_libraries(
+  SVSpectralClustering
+  PUBLIC Eigen3::Eigen
+         Spectra::Spectra
+         sklearncppMetricsPairwise
+         scipycppSpatialDistance
+         sklearncppClusterKMeans
+         sklearncppNearestNeighbors
+         clusterRotate
+         TBB::tbb
+         TBB::tbbmalloc
+         OpenMP::OpenMP_CXX
+         -lopenblas
+         -llapacke)
+# OpenMP::OpenMP_CXX TBB::tbb TBB::tbbmalloc)
+# target_compile_options(MVSpectralClustering PUBLIC -O3 -fopenmp)
+target_compile_options(
+  SVSpectralClustering
+  PUBLIC -O3
+         -ffast-math
+         -Wall
+         -Wextra
+         -DEIGEN_NO_DEBUG
+         -DNDEBUG
+         -fopenmp)

@@ -5,6 +5,7 @@ from ._core import (
     __version__,
     MultiviewSpectralClustering,
     MultiviewCoRegSpectralClustering,
+    SingleviewSpectralClustering,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "__version__",
     "MultiviewSpectralClustering",
     "MultiviewCoRegSpectralClustering",
+    "SingleviewSpectralClustering",
 ]

@@ -11,8 +11,6 @@ class MVSpectralClustering {
  private:
   double gamma_{};
   int n_neighbors_{};
-  bool auto_num_clusters_{};
-  bool use_spectra_{};
 
  protected:
   int n_clusters_{};
@@ -21,7 +19,8 @@ class MVSpectralClustering {
   int info_view_{};
   std::string affinity_{};
   int max_iter_{};
-
+  bool auto_num_clusters_{};
+  bool use_spectra_{};
   int n_views_{};
 
   void fit_init_(const std::vector<Eigen::MatrixXd>& Xs,
