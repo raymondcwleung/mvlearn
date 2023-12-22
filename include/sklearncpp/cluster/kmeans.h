@@ -2,6 +2,7 @@
 #define SKLEARNCPP_CLUSTER_KMEANS_H_
 
 #include <Eigen/Dense>
+#include <mlpack.hpp>
 #include <armadillo>
 
 namespace sklearn::cluster {
