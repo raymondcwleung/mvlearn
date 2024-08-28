@@ -1,10 +1,7 @@
 #include "cluster/mv_spectral.h"
 
 #include <Eigen/src/Core/Matrix.h>
-#include <Spectra/MatOp/DenseSymMatProd.h>
 #include <Spectra/SymEigsSolver.h>
-#include <Spectra/Util/CompInfo.h>
-#include <Spectra/Util/SelectionRule.h>
 #include <pstl/glue_execution_defs.h>
 
 #include <Eigen/Dense>
@@ -153,14 +150,21 @@ void MVSpectralClustering::computeEigs_(
     // Try to use the Spectra package to compute the eigenvectors for
     // efficiency. If Spectra fails, fall back to the the eigendecomposition
     // solver in Eigen.
+    int n = laplacian.rows();
+    int nev = num_top_eigenvectors;
+    int ncv = std::min(n, 3 * num_top_eigenvectors);
+
     Spectra::DenseSymMatProd<double> op(laplacian);
-    Spectra::SymEigsSolver<Spectra::DenseSymMatProd<double>> eigs(
-        op,                       // op
-        num_top_eigenvectors,     // nev
-        2 * num_top_eigenvectors  // ncv
+    Spectra::SymEigsSolver<Spectra::DenseSymMatProd<double>> eigs(op,   // op
+                                                                  nev,  // nev
+                                                                  ncv   // ncv
     );
     eigs.init();
-    eigs.compute(Spectra::SortRule::LargestAlge);
+    eigs.compute(Spectra::SortRule::LargestMagn,  // selection
+                 1000,                            // maxit
+                 1e-10,                           // tol
+                 Spectra::SortRule::LargestAlge   // sorting
+    );
 
     if (eigs.info() == Spectra::CompInfo::Successful) {
       u_mat.noalias() = eigs.eigenvectors();
@@ -303,6 +307,12 @@ void MVSpectralClustering::fit(const std::vector<Eigen::MatrixXd>& Xs) {
           Eigen::MatrixXd mat11 = sims[view] * (U_sum - eig_sums[view]);
           new_sims[view].noalias() = 0.5 * (mat11 + mat11.transpose());
         });
+
+    // Clear variables
+    std::for_each(idx_views.begin(), idx_views.end(), [&](const int& view) {
+      tmp_laplacians[view].setZero();
+      tmp_obj_vals[view] = 0;
+    });
 
     // Recompute eigenvectors and get new U_v's
     std::for_each(std::execution::par_unseq,

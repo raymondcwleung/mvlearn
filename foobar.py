@@ -98,8 +98,28 @@ m_data = [data0, data1]
 num_samples = m_data[0].shape[0]  # 453
 num_features = m_data[0].shape[1]  # 252
 
+lamplus = (1 + np.sqrt(num_samples / num_features)) ** 2
+stuff = (1 / num_samples) * np.matmul(data0, data0.transpose())
+eval, evec = np.linalg.eig(stuff)
+num_k = sum(eval >= lamplus)
+
+
 n_clusters = 25
 auto_num_clusters = True
+
+svsc = mvlearnpycpp.SingleviewSpectralClustering(
+    n_clusters,
+    num_samples,  # Number of stocks
+    num_features,  # Number of time stamps
+    max_iter,
+    affinity_mpp,
+    n_neighbors,
+    gamma_mpp,
+    auto_num_clusters,
+    use_spectra,
+)
+spp_clusters = svsc.fit_predict(data0)
+
 
 t0 = time.time()
 mvsc = mvlearnpycpp.MultiviewSpectralClustering(
@@ -117,6 +137,8 @@ mvsc = mvlearnpycpp.MultiviewSpectralClustering(
 mpp_clusters = mvsc.fit_predict(m_data)
 t1 = time.time()
 print("mv_clusters time {}".format(t1 - t0))
+
+breakpoint()
 
 
 t0 = time.time()
